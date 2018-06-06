@@ -1,21 +1,43 @@
 {
   "name": "@consultingwerk/smartcomponents-jsdo",
-  "version": "1.0.3",
+  "version": "2.0.0",
   "description": "The JSDO is a JavaScript implementation of the CDO Specification published by Progress Software Corporation.\r The JSDO is a free and open-source full-featured implementation that can be used in web, mobile web and hybrid mobile apps.",
-  "main": "index.js",
+  "main": "lib/progress.all.min.js",
+  "files": [
+    "LICENSE",
+    "notice.txt",
+    "readme.md",
+    "lib/",
+    "typings/"
+  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "publishConfig": { "registry": "http://esd.consultingwerkcloud.com:4873" },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/consultingwerk/JSDO.git"
+    "url": "git+https://github.com/progress/JSDO.git"
   },
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "JSDO",
+    "Progress",
+    "node",
+    "NativeScript"
+  ],
+  "author": "Progress Software",
+  "typings": "typings/progress.all.d.ts",
+  "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/consultingwerk/JSDO/issues"
+    "url": "https://github.com/progress/JSDO/issues"
   },
-  "typings": "./lib/progress.jsdo.d.ts",
-  "homepage": "https://github.com/consultingwerk/JSDO#readme"
+  "homepage": "https://github.com/progress/JSDO#readme",
+  "dependencies": {},
+  "peerDependencies": {},
+  "optionalDependencies": {},
+  "devDependencies": {
+    "del": "^3.0.0",
+    "gulp": "^3.9.1",
+    "gulp-concat": "^2.6.1",
+    "gulp-minify": "^2.1.0",
+    "gulp-sequence": "^1.0.0"
+  }
 }
