@@ -25,7 +25,7 @@ Author(s): maura, anikumar, egarcia
 */
 
 import { Injectable } from "@angular/core";
-import { progress } from "@progress/jsdo-core";
+import { progress } from "@consultingwerk/jsdo-core";
 import "rxjs/add/observable/fromPromise";
 import "rxjs/add/operator/catch";
 import { Observable } from "rxjs/Observable";
@@ -669,7 +669,12 @@ export class DataSource {
                         try {
                             if (typeof (result.request.response) === "object"
                                 && Object.keys(result.request.response).length === 1) {
-                                countVal = Object.values(result.request.response)[0];
+                                //Radu Nicoara, Consultingwerk Ltd.
+                                //07.06.2017
+                                //Use Object.keys instead of Object.values to prevent compile errors
+                                //in newer versions of typescript
+                                const values = Object.keys(result.request.response).map(key => result.request.response[key]);
+                                countVal = values[0];
                                 if (typeof (countVal) !== "number") {
                                     countVal = undefined;
                                 }

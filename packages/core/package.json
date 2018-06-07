@@ -1,5 +1,5 @@
 {
-  "name": "@progress/jsdo-core",
+  "name": "@consultingwerk/jsdo-core",
   "version": "5.0.0",
   "description": "JSDO Core Module",
   "main": "lib/progress.core.js",
