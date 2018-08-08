@@ -1,5 +1,5 @@
 {
-  "name": "@consultingwerk/jsdo-node",
+  "name": "@consultingwerk/smartcomponents-jsdo-node",
   "version": "5.0.0",
   "description": "The Progress Data Source is a TypeScript implementation - Progress Data Source class for NativeScript, Angular and Node.js. This will provide a seamless integration between OpenEdge (Progress Data Object) with Node.js.",
   "main": "lib/progress.data.node.js",
@@ -25,7 +25,7 @@
     "Data Source",
     "Data Source for Node"
   ],
-  "author": "Progress Software",
+  "author": "Consultingwerk Software Services Ltd.",
   "typings": "typings/progress.data.node.d.ts",
   "license": "Apache-2.0",
   "bugs": {

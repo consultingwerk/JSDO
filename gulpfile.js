@@ -9,7 +9,13 @@ var rename = require('gulp-rename');
 /* JSDO Source Library tasks */
 
 gulp.task('cleanup', function (done) {
-    del(['lib/*']).then(function () { done(); })
+    del(['lib/*']).then(function () {
+        return del([
+            'packages/core/lib/*',
+            'packages/nativescript/lib/*',
+            'packages/node/lib/*'
+        ])
+    }).then(function() { done(); })
         .catch(function (err) { done(err); })
 });
 
@@ -31,11 +37,11 @@ gulp.task('concat all', function () {
     return gulp.src([
         'src/progress.util.js',
         'src/progress.js',
-        'src/progress.session.js',
         'src/auth/progress.auth.js',
         'src/auth/progress.auth.basic.js',
         'src/auth/progress.auth.form.js',
         'src/auth/progress.auth.sso.js',
+        'src/progress.session.js',
         'src/progress.data.kendo.js'
     ]).pipe(concat('progress.all.js'))
         .pipe(gulp.dest('lib/'));
@@ -45,11 +51,11 @@ gulp.task('concat jsdo', function () {
     return gulp.src([
         'src/progress.util.js',
         'src/progress.js',
-        'src/progress.session.js',
         'src/auth/progress.auth.js',
         'src/auth/progress.auth.basic.js',
         'src/auth/progress.auth.form.js',
-        'src/auth/progress.auth.sso.js'
+        'src/auth/progress.auth.sso.js',
+        'src/progress.session.js',
     ]).pipe(concat('progress.jsdo.js'))
         .pipe(gulp.dest('lib/'));
 });
@@ -59,23 +65,16 @@ gulp.task('build jsdo', sequence('cleanup', 'concat all', 'concat jsdo', 'minify
 /* Core package tasks */
 
 gulp.task('concat core', function () {
-    return gulp.src([
-        'src/progress.util.js',
-        'src/progress.js',
-        'src/progress.session.js',
-        'src/progress.auth.js',
-        'src/auth/progress.auth.basic.js',
-        'src/auth/progress.auth.form.js',
-        'src/auth/progress.auth.sso.js'
-    ]).pipe(concat('progress.core.js'))
-        .pipe(gulp.dest('packages/core/lib'))
+    return gulp.src(['lib/progress.jsdo.js'])
+        .pipe(rename('progress.core.js'))
+        .pipe(gulp.dest('packages/core/lib/'));
 });
 
-gulp.task('core typings', function() {
+gulp.task('core typings', function () {
     return gulp.src(['typings/*']).pipe(rename('progress.core.d.ts')).pipe(gulp.dest('packages/core/typings'));
 });
 
-gulp.task('core license', function() {
+gulp.task('core license', function () {
     return gulp.src(['LICENSE', 'notice.txt']).pipe(gulp.dest('packages/core'));
 });
 
@@ -83,7 +82,7 @@ gulp.task('build core', sequence('build jsdo', 'concat core', 'core typings', 'c
 
 /* Angular Data Source package tasks */
 
-gulp.task('compile ng', function() {
+gulp.task('compile ng', function () {
     return gulp.src(['packages/ng-datasource/src/progress.data.ng.ds.ts']).pipe(typescript.createProject({
         experimentalDecorators: true,
         module: 'commonjs',
@@ -92,15 +91,15 @@ gulp.task('compile ng', function() {
     })()).pipe(gulp.dest('packages/ng-datasource/src/'));
 });
 
-gulp.task('package ng', function() {
+gulp.task('package ng', function () {
     return gulp.src(['packages/ng-datasource/src/progress.data.ng.ds.js']).pipe(rename('progress.data.angular.js')).pipe(gulp.dest('packages/angular/lib/'));
 });
 
-gulp.task('ng typings', function() {
+gulp.task('ng typings', function () {
     return gulp.src(['packages/ng-datasource/typings/progress.data.ng.ds.d.ts']).pipe(rename('progress.data.angular.d.ts')).pipe(gulp.dest('packages/angular/typings/'));
 });
 
-gulp.task('ng license', function() {
+gulp.task('ng license', function () {
     return gulp.src(['LICENSE', 'notice.txt']).pipe(gulp.dest('packages/angular'));
 });
 
@@ -108,19 +107,19 @@ gulp.task('build ng', sequence('compile ng', 'package ng', 'ng typings', 'ng lic
 
 /* NativeScript Data Source package tasks */
 
-gulp.task('concat ns', function() {
+gulp.task('concat ns', function () {
     return gulp.src([
         'packages/nativescript/src/loaddep.js',
         'packages/ng-datasource/src/progress.data.ng.ds.js'
     ]).pipe(concat('progress.data.ns.js'))
-    .pipe(gulp.dest('packages/nativescript/lib/'));
+        .pipe(gulp.dest('packages/nativescript/lib/'));
 });
 
-gulp.task('ns typings', function() {
+gulp.task('ns typings', function () {
     return gulp.src(['packages/ng-datasource/typings/progress.data.ng.ds.d.ts']).pipe(rename('progress.data.ns.d.ts')).pipe(gulp.dest('packages/nativescript/typings/'));
 });
 
-gulp.task('ns license', function() {
+gulp.task('ns license', function () {
     return gulp.src(['LICENSE', 'notice.txt']).pipe(gulp.dest('packages/nativescript'));
 });
 
@@ -128,19 +127,19 @@ gulp.task('build ns', sequence('compile ng', 'concat ns', 'ns typings', 'ns lice
 
 /* node.js Data Source package tasks */
 
-gulp.task('concat node', function() {
+gulp.task('concat node', function () {
     return gulp.src([
         'packages/node/src/loaddep.js',
         'packages/ng-datasource/src/progress.data.ng.ds.js'
     ]).pipe(concat('progress.data.node.js'))
-    .pipe(gulp.dest('packages/node/lib/'));
+        .pipe(gulp.dest('packages/node/lib/'));
 });
 
-gulp.task('node typings', function() {
+gulp.task('node typings', function () {
     return gulp.src(['packages/ng-datasource/typings/progress.data.ng.ds.d.ts']).pipe(rename('progress.data.node.d.ts')).pipe(gulp.dest('packages/node/typings/'));
 });
 
-gulp.task('node license', function() {
+gulp.task('node license', function () {
     return gulp.src(['LICENSE', 'notice.txt']).pipe(gulp.dest('packages/node'));
 });
 

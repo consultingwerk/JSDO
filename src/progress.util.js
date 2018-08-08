@@ -46,7 +46,11 @@ limitations under the License.
     var pkg_xmlhttprequest              = "xmlhttprequest",
         pkg_nodeLocalstorage            = "node-localstorage",
         pkg_nativescriptLocalstorage    = "nativescript-localstorage",
-        pkg_fileSystemAccess            = "file-system/file-system-access"
+        pkg_fileSystemAccess            = "file-system/file-system-access",
+        // Radu Nicoara, 07.08.2018
+        // Use variable "hack" for base-64 NativeScript dependency,
+        // to prevent module not found warning in Angular builds
+        pkg_base64                      = "base-64"
         ;
 
     // If XMLHttpRequest is undefined, enviroment would appear to be Node.js
@@ -97,7 +101,9 @@ limitations under the License.
         // load module base-64
         try {
             if (typeof btoa === "undefined") {
-                btoa = require("base-64").encode;
+                // Radu Nicoara, 07.08.2018
+                // Use base64 variable to prevent module not found warning in Angular builds
+                btoa = require("" + pkg_base64).encode;
             }
         } catch(exception3) {
             console.error("Error: JSDO library requires btoa() function in NativeScript.\n"
@@ -127,7 +133,9 @@ limitations under the License.
         // load module base-64
         try {
             if (typeof btoa === "undefined") {
-                btoa = require("base-64").encode;
+                // Radu Nicoara, 07.08.2018
+                // Use base64 variable to prevent module not found warning in Angular builds
+                btoa = require("" + pkg_base64).encode;
             }
         } catch(exception3) {
             console.error("Error: JSDO library requires btoa() function in Node.js.\n"

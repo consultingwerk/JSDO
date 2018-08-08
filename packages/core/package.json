@@ -1,5 +1,5 @@
 {
-  "name": "@consultingwerk/jsdo-core",
+  "name": "@consultingwerk/smartcomponents-jsdo-core",
   "version": "5.0.0",
   "description": "JSDO Core Module",
   "main": "lib/progress.core.js",
@@ -23,7 +23,7 @@
     "NativeScript",
     "node"
   ],
-  "author": "Progress Software",
+  "author": "Consultingwerk Software Services Ltd.",
   "typings": "typings/progress.core.d.ts",
   "license": "Apache-2.0",
   "bugs": {
@@ -32,5 +32,7 @@
   "homepage": "https://github.com/progress/JSDO#readme",
   "dependencies": {},
   "peerDependencies": {},
-  "optionalDependencies": {}
+  "optionalDependencies": {
+    "base-64": "^0.1.0"
+  }
 }

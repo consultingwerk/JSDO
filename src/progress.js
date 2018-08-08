@@ -40,7 +40,7 @@ limitations under the License.
 
     /* 15 - 9 */
     var UID_MAX_VALUE = 999999999999999;
-
+ 
     progress.data._getNextId = function () {
         var uid = ++progress.data._nextid;
         if (uid >= UID_MAX_VALUE) {

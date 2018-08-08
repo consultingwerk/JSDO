@@ -290,7 +290,7 @@ var DataSource = /** @class */ (function () {
                 _this._initFromServer = true;
                 var data = _this.getJsdoData();
                 if ((_this._options.countFnName && _this._options.countFnName !== undefined)
-                    && !(params.skip === 0 && params.top > data.length)) { // Server-side operations
+                    && !(params.skip === 0 && params.top > data.length)) {
                     _this.getRecCount(_this._options.countFnName, { filter: result.request.objParam ? result.request.objParam.filter : undefined })
                         .then(function (res) {
                         if (res === undefined && res == null) {
@@ -504,7 +504,7 @@ var DataSource = /** @class */ (function () {
                     else if (result.info.batch.operations.length === 0) {
                         resolve({});
                     }
-                    else { // Reject promise if either of above cases are met
+                    else {
                         reject(new Error(_this
                             .normalizeError(result, "saveChanges", "Errors occurred while saving Changes.")));
                     }
@@ -693,7 +693,7 @@ var DataSource = /** @class */ (function () {
                     if (firstKey !== this._tableRef) {
                         target[firstKey][this._tableRef].push(newEntry[firstKey][this._tableRef][0]);
                     }
-                    else { // Temp-table usecase
+                    else {
                         target[this._tableRef].push(newEntry[this._tableRef][0]);
                     }
                     return target;
