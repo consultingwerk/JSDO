@@ -87,7 +87,16 @@ gulp.task('compile ng', function () {
         experimentalDecorators: true,
         module: 'commonjs',
         target: 'es5',
-        lib: ['es2015', 'dom']
+        lib: ['es2015', 'dom'],
+        baseUrl: '.',
+        paths: {
+            '@consultingwerk/smartcomponents-jsdo-core': [
+                'packages/core'
+            ],
+            '@consultingwerk/smartcomponents-jsdo-core/*': [
+                'packages/core/*'
+            ]
+        }
     })()).pipe(gulp.dest('packages/ng-datasource/src/'));
 });
 

@@ -7185,6 +7185,7 @@ limitations under the License.
                 filter = JSON.stringify({
                     ablFilter: ablFilter,
                     tableRef: params.tableRef,
+                    viewTables: jsdo.viewTables,
                     sqlQuery: sqlQuery,
                     orderBy: sortFields,
                     skip: params.skip,

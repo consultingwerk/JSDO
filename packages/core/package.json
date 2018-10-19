@@ -1,6 +1,6 @@
 {
   "name": "@consultingwerk/smartcomponents-jsdo-core",
-  "version": "5.0.0",
+  "version": "5.0.1",
   "description": "JSDO Core Module",
   "main": "lib/progress.core.js",
   "files": [
@@ -23,7 +23,7 @@
     "NativeScript",
     "node"
   ],
-  "author": "Consultingwerk Software Services Ltd.",
+  "author": "Consultingwerk Ltd.",
   "typings": "typings/progress.core.d.ts",
   "license": "Apache-2.0",
   "bugs": {

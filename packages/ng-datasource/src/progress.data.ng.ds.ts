@@ -25,7 +25,7 @@ Author(s): maura, anikumar, egarcia
 */
 
 import { Injectable } from "@angular/core";
-import { progress } from "@consultingwerk/jsdo-core";
+import { progress } from "@consultingwerk/smartcomponents-jsdo-core";
 import "rxjs/add/observable/fromPromise";
 import "rxjs/add/operator/catch";
 import { Observable } from "rxjs/Observable";

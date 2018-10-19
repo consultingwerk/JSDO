@@ -27,7 +27,7 @@
     "Data Source for NativeScript",
     "Data Source for Angular"
   ],
-  "author": "Consultingwerk Software Services Ltd.",
+  "author": "Consultingwerk Ltd.",
   "typings": "typings/progress.data.ng.ds.d.ts",
   "license": "Apache-2.0",
   "bugs": {

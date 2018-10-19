@@ -89,7 +89,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var core_1 = require("@angular/core");
-var jsdo_core_1 = require("@consultingwerk/jsdo-core");
+var smartcomponents_jsdo_core_1 = require("@consultingwerk/smartcomponents-jsdo-core");
 require("rxjs/add/observable/fromPromise");
 require("rxjs/add/operator/catch");
 var Observable_1 = require("rxjs/Observable");
@@ -112,7 +112,7 @@ var DataSource = /** @class */ (function () {
         this.readLocal = options.readLocal !== undefined ? options.readLocal : false;
         // Make sure autoApplyChanges = true
         this.jsdo.autoApplyChanges = true;
-        if (!options.jsdo || !(options.jsdo instanceof jsdo_core_1.progress.data.JSDO)) {
+        if (!options.jsdo || !(options.jsdo instanceof smartcomponents_jsdo_core_1.progress.data.JSDO)) {
             throw new Error("DataSource: jsdo property must be set to a JSDO instance.");
         }
         if (this._options.tableRef === undefined && this.jsdo.defaultTableRef) {
