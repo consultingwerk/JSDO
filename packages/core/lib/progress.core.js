@@ -1,7 +1,7 @@
 /*eslint no-global-assign: ["error", {"exceptions": ["localStorage"]}]*/
 /*global XMLHttpRequest:true, require, console, localStorage:true, sessionStorage:true, $:true, Promise, setTimeout */
 /*
-progress.util.js    Version: 5.0.0
+progress.util.js    Version: 6.0.0
 
 Copyright (c) 2014-2018 Progress Software Corporation and/or its subsidiaries or affiliates.
 
@@ -133,8 +133,6 @@ limitations under the License.
         // load module base-64
         try {
             if (typeof btoa === "undefined") {
-                // Radu Nicoara, 07.08.2018
-                // Use base64 variable to prevent module not found warning in Angular builds
                 btoa = require("" + pkg_base64).encode;
             }
         } catch(exception3) {
@@ -267,26 +265,27 @@ limitations under the License.
                     object.result = arg2;
                     object.info = arg3;
                 } else {
-                    objectName = arg1.constructor.name.toLowerCase();
-                    if (!objectName) {
+                    // Map some object name to use a particular property name
+                    // We should probably spend some time down the line to truly use
+                    // ES6 promises.
+                    if (arg1 instanceof progress.data.JSDOSession) {
+                        objectName = "jsdosession";
+                    } else if (arg1 instanceof progress.data.AuthenticationProvider) {
+                        objectName = "provider";
+                    } else if (arg1 instanceof progress.data.JSDO) {
+                        objectName = "jsdo";
+                    } else if (typeof(arg1) === "number") {
+                        objectName = "result";
+                    } else {
                         objectName = typeof(arg1);
                     }                    
 
-                    // Map some object name to use a particular property name
-                    switch (objectName) {
-                    case "authenticationprovider":
-                        objectName = "provider"
-                        break;
-                    case "number":
-                        objectName = "result"
-                        break;
-                    default:
-                        break;
-                    }
                     object[objectName] = arg1;
                     if (objectName === "jsdo") {
                         object.success = arg2;
                         if (arg3 && arg3.xhr) {
+                            object.request = arg3;
+                        } else if (arg3 && arg3.batch) {
                             object.request = arg3;
                         } else {
                             object.info = arg3;
@@ -712,7 +711,7 @@ limitations under the License.
                         // containing single quotes
                         value = value.replace("'", "~047");
                     } else if (type === DATE_OBJECT_TYPE) {
-                        ablType = tableRef._getABLType(field);
+                        ablType = tableRef._getABLType(filter.field);
                         if (ablType === "DATE") {
                             format = "DATE({1:MM, dd, yyyy})";
                         } else if (ablType === "DATETIME-TZ") {
@@ -1086,7 +1085,7 @@ limitations under the License.
 }());
 
 /* 
-progress.js    Version: 5.0.0
+progress.js    Version: 6.0.0
 
 Copyright (c) 2012-2018 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -1127,7 +1126,7 @@ limitations under the License.
 
     /* 15 - 9 */
     var UID_MAX_VALUE = 999999999999999;
- 
+
     progress.data._getNextId = function () {
         var uid = ++progress.data._nextid;
         if (uid >= UID_MAX_VALUE) {
@@ -3319,6 +3318,11 @@ limitations under the License.
                             this._resource.idProperty = properties[tableName].idProperty;
                         }
                     }
+                } else if (this._resource.schema
+                    && this._resource.schema.properties
+                    && this._resource.schema.properties[tableName]
+                    && this._resource.schema.properties[tableName].idProperty) {
+                    this._resource.idProperty = this._resource.schema.properties[tableName].idProperty;
                 }
 
                 // Add functions for operations to JSDO object
@@ -8727,7 +8731,7 @@ limitations under the License.
 //this is so that we can see the code in Chrome's Source tab when script is loaded via XHR
 
 /* 
-progress.auth.js    Version: 4.4.0-3
+progress.auth.js    Version: 6.0.0
 
 Copyright (c) 2016-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -9198,7 +9202,7 @@ limitations under the License.
 
 
 /* 
-progress.auth.basic.js    Version: 4.4.0-3
+progress.auth.basic.js    Version: 6.0.0
 
 Copyright (c) 2016-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -9357,7 +9361,7 @@ limitations under the License.
 }());
 
 /* 
-progress.auth.form.js    Version: 5.0.0
+progress.auth.form.js    Version: 6.0.0
 
 Copyright (c) 2016-2018 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -9569,7 +9573,7 @@ limitations under the License.
 }());
 
 /* 
-progress.auth.sso.js    Version: 4.4.0-3
+progress.auth.sso.js    Version: 6.0.0
 
 Copyright (c) 2016-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -10063,7 +10067,7 @@ limitations under the License.
 
 
 /*
-progress.session.js    Version: 5.0.0
+progress.session.js    Version: 6.0.0
 
 Copyright (c) 2012-2018 Progress Software Corporation and/or its subsidiaries or affiliates.
 
@@ -13143,9 +13147,9 @@ limitations under the License.
                 // Mike Fechner, Consultingwerk Ltd. 02.02.2016
                 // Need to use & in URI, not ;
                 if (url.substring(0, this.serviceURI.length) == this.serviceURI) {
-                    var jsessionidStr = "JSESSIONID=" + this.clientContextId + "&";
+                    jsessionidStr = "JSESSIONID=" + this.clientContextId + "&";
                     index = url.indexOf('?');
-                    if (index == -1) {
+                    if (index === -1) {
                         url += jsessionidStr;  // just append the jsessionid path parameter to the path
                     } else {
                         // insert jsessionid path parameter before the first query parameter

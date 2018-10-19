@@ -1,5 +1,5 @@
 /*
-progress.session.js    Version: 5.0.0
+progress.session.js    Version: 6.0.0
 
 Copyright (c) 2012-2018 Progress Software Corporation and/or its subsidiaries or affiliates.
 
@@ -3079,9 +3079,9 @@ limitations under the License.
                 // Mike Fechner, Consultingwerk Ltd. 02.02.2016
                 // Need to use & in URI, not ;
                 if (url.substring(0, this.serviceURI.length) == this.serviceURI) {
-                    var jsessionidStr = "JSESSIONID=" + this.clientContextId + "&";
+                    jsessionidStr = "JSESSIONID=" + this.clientContextId + "&";
                     index = url.indexOf('?');
-                    if (index == -1) {
+                    if (index === -1) {
                         url += jsessionidStr;  // just append the jsessionid path parameter to the path
                     } else {
                         // insert jsessionid path parameter before the first query parameter

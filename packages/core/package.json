@@ -1,6 +1,6 @@
 {
   "name": "@consultingwerk/smartcomponents-jsdo-core",
-  "version": "5.0.1",
+  "version": "6.0.0",
   "description": "JSDO Core Module",
   "main": "lib/progress.core.js",
   "files": [
@@ -32,7 +32,5 @@
   "homepage": "https://github.com/progress/JSDO#readme",
   "dependencies": {},
   "peerDependencies": {},
-  "optionalDependencies": {
-    "base-64": "^0.1.0"
-  }
+  "optionalDependencies": {}
 }

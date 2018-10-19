@@ -1,6 +1,6 @@
 {
   "name": "@consultingwerk/smartcomponents-jsdo",
-  "version": "2.0.0",
+  "version": "6.0.0",
   "description": "The JSDO is a JavaScript implementation of the CDO Specification published by Progress Software Corporation.\r The JSDO is a free and open-source full-featured implementation that can be used in web, mobile web and hybrid mobile apps.",
   "main": "lib/progress.all.min.js",
   "files": [
@@ -11,8 +11,11 @@
     "typings/"
   ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "gulp 'build all'"
+    "build": "gulp 'build all'",
+    "test": "npm run build:jsdo && mocha --recursive",
+    "test:smokes": "npm run build:jsdo && mocha test/smoke*.js",
+    "test:tc-smokes": "npm run build:jsdo && mocha test/smoke*.js --recursive --reporter mocha-teamcity-reporter",
+    "test:tc": "npm run build:jsdo && mocha --timeout 15000 --recursive --reporter mocha-teamcity-reporter"
   },
   "repository": {
     "type": "git",
@@ -35,6 +38,15 @@
   "peerDependencies": {},
   "optionalDependencies": {},
   "devDependencies": {
+    "base-64": "^0.1.0",
+    "chai": "^4.1.2",
+    "chai-as-promised": "^7.1.1",
+    "concat": "^1.0.3",
+    "mkdirp": "^0.5.1",
+    "mocha": "^5.2.0",
+    "mocha-teamcity-reporter": "^2.4.0",
+    "node-localstorage": "^1.3.1",
+    "xmlhttprequest": "^1.8.0",
     "@angular/core": "^6.0.4",
     "del": "^3.0.0",
     "gulp": "^3.9.1",

@@ -87,7 +87,10 @@ gulp.task('compile ng', function () {
         experimentalDecorators: true,
         module: 'commonjs',
         target: 'es5',
-        lib: ['es2015', 'dom'],
+        moduleResolution: 'node',
+        declaration: true,
+        noEmitHelpers: false,
+        lib: ['es6', 'dom', 'es2017'],
         baseUrl: '.',
         paths: {
             '@consultingwerk/smartcomponents-jsdo-core': [

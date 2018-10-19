@@ -1,6 +1,6 @@
 "use strict";
 /*
-Progress Progress Data Source for Angular: 5.0.0
+Progress Progress Data Source for Angular: 6.0.0
 
 Copyright 2017-2018 Progress Software Corporation and/or its subsidiaries or affiliates.
 
@@ -16,7 +16,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-progress.data.ng.ds.ts    Version: v5.0.0
+progress.data.ng.ds.ts    Version: v6.0.0
 
 Progress Data Source class for NativeScript, Angular. This will provide a seamless integration
 between OpenEdge (Progress Data Object) with NativeScript.
@@ -33,9 +33,8 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 var core_1 = require("@angular/core");
 var smartcomponents_jsdo_core_1 = require("@consultingwerk/smartcomponents-jsdo-core");
-require("rxjs/add/observable/fromPromise");
-require("rxjs/add/operator/catch");
-var Observable_1 = require("rxjs/Observable");
+var rxjs_1 = require("rxjs");
+var operators_1 = require("rxjs/operators");
 var DataSourceOptions = /** @class */ (function () {
     function DataSourceOptions() {
     }
@@ -247,7 +246,7 @@ var DataSource = /** @class */ (function () {
             }
         }
         if (this.readLocal && this._initFromServer) {
-            return Observable_1.Observable.create(function (observer) {
+            return rxjs_1.Observable.create(function (observer) {
                 var data = _this.getJsdoData();
                 observer.next({ data: data, total: data.length });
             });
@@ -289,20 +288,23 @@ var DataSource = /** @class */ (function () {
                 }
                 _this._initFromServer = true;
                 var data = _this.getJsdoData();
-                if ((_this._options.countFnName && _this._options.countFnName !== undefined)
+                // Only call count() function if paging is being used
+                // Paging is only used if the skip and top is being used during the fill.
+                if (typeof params !== "undefined" &&
+                    (typeof _this._options.countFnName !== "undefined" && typeof params.skip !== "undefined" && typeof params.top !== "undefined")
                     && !(params.skip === 0 && params.top > data.length)) {
                     _this.getRecCount(_this._options.countFnName, { filter: result.request.objParam ? result.request.objParam.filter : undefined })
                         .then(function (res) {
                         if (res === undefined && res == null) {
-                            reject(new Error(_this.normalizeError(res, "Unexpected response from 'Count Function' Operation", "")));
+                            reject(_this.normalizedErrorObj(res, "Unexpected response from 'Count Function' Operation", ""));
                         }
                         else {
                             resolve({ data: data, total: res });
                         }
                     }, function (error) {
-                        reject(new Error(_this.normalizeError(error, "Problems invoking getRecCount function", "")));
+                        reject(_this.normalizedErrorObj(error, "Problems invoking getRecCount function", ""));
                     }).catch(function (e) {
-                        reject(new Error(_this.normalizeError(e, "Unknown error occurred calling count.", "")));
+                        reject(_this.normalizedErrorObj(e, "Unknown error occurred calling count.", ""));
                     });
                 }
                 else {
@@ -310,13 +312,13 @@ var DataSource = /** @class */ (function () {
                     resolve({ data: data, total: data.length });
                 }
             }).catch(function (result) {
-                reject(new Error(_this.normalizeError(result, "read", "")));
+                reject(_this.normalizedErrorObj(result, "read", ""));
             });
         });
-        obs = Observable_1.Observable.fromPromise(wrapperPromise);
-        obs.catch(function (e) {
+        obs = rxjs_1.from(wrapperPromise);
+        obs.pipe(operators_1.catchError(function (e) {
             return [];
-        });
+        }));
         return obs;
     };
     /**
@@ -489,8 +491,8 @@ var DataSource = /** @class */ (function () {
                 }
                 else {
                     // Non-Submit case
-                    if (result.info.batch.operations && result.info.batch.operations.length > 0) {
-                        result.info.batch.operations.forEach(function (operation) {
+                    if (result.request && result.request.batch.operations && result.request.batch.operations.length > 0) {
+                        result.request.batch.operations.forEach(function (operation) {
                             _this._copyRecord(operation.response, responseData);
                             // In case of multiple operations we want to merge those records pertaining
                             // to different operations in a single dataset and is sent as part of the
@@ -501,26 +503,26 @@ var DataSource = /** @class */ (function () {
                         // Scenario where the saveChanges is invoked directly without any Submit/Non-Submit
                         // service as the serviceURI. We will resolve with an empty object
                     }
-                    else if (result.info.batch.operations.length === 0) {
+                    else if (result.request && result.request.batch.operations.length === 0) {
                         resolve({});
                     }
                     else {
-                        reject(new Error(_this
-                            .normalizeError(result, "saveChanges", "Errors occurred while saving Changes.")));
+                        reject(_this
+                            .normalizedErrorObj(result, "saveChanges", "Errors occurred while saving Changes."));
                     }
                 }
             }).catch(function (result) {
                 if (_this.jsdo.autoApplyChanges) {
                     _this.jsdo[_this._tableRef].rejectChanges();
                 }
-                reject(new Error(_this
-                    .normalizeError(result, "saveChanges", "Errors occurred while saving Changes.")));
+                reject(_this
+                    .normalizedErrorObj(result, "saveChanges", "Errors occurred while saving Changes."));
             });
         });
-        obs = Observable_1.Observable.fromPromise(promise);
-        obs.catch(function (e) {
+        obs = rxjs_1.from(promise);
+        obs.pipe(operators_1.catchError(function (e) {
             return [];
-        });
+        }));
         return obs;
     };
     /**
@@ -577,12 +579,7 @@ var DataSource = /** @class */ (function () {
                 try {
                     if (typeof (result.request.response) === "object"
                         && Object.keys(result.request.response).length === 1) {
-                        //Radu Nicoara, Consultingwerk Ltd.
-                        //07.06.2017
-                        //Use Object.keys instead of Object.values to prevent compile errors
-                        //in newer versions of typescript
-                        var values = Object.keys(result.request.response).map(function (key) { return result.request.response[key]; });
-                        countVal = values[0];
+                        countVal = Object.values(result.request.response)[0];
                         if (typeof (countVal) !== "number") {
                             countVal = undefined;
                         }
@@ -590,10 +587,10 @@ var DataSource = /** @class */ (function () {
                     resolve(countVal);
                 }
                 catch (e) {
-                    reject(new Error(_this.normalizeError(e, "getRecCount", "")));
+                    reject(_this.normalizedErrorObj(e, "getRecCount", ""));
                 }
             }).catch(function (result) {
-                reject(new Error(_this.normalizeError(result, "Error invoking the 'Count' operation", "")));
+                reject(_this.normalizedErrorObj(result, "Error invoking the 'Count' operation", ""));
             });
         });
         return getRecCountPromise;
@@ -637,6 +634,28 @@ var DataSource = /** @class */ (function () {
             errorMsg = error.message;
         }
         return errorMsg;
+    };
+    /**
+     * This method is called after an error has occurred on a jsdo operation, and is
+     * used to get an error object.
+     * @param {any} result Object containing error info returned after execution of jsdo operation
+     * @param {string} operation String containing operation performed when error occurred
+     * @param {string} genericMsg If multiple errors are found in result object, if specified,
+     * this string will be returned as part of the new error object. If not specified, first error
+     * string will be returned.
+     * @returns A single error object with all information
+     */
+    DataSource.prototype.normalizedErrorObj = function (result, operation, genericMsg) {
+        var errorObj = {};
+        var eMsg = "";
+        var object = {};
+        if (result && result.jsdo && result.success == false) {
+            object = result.request;
+        }
+        eMsg = this.normalizeError(result, operation, genericMsg);
+        errorObj = new Error(eMsg);
+        errorObj.info = object;
+        return errorObj;
     };
     DataSource.prototype._copyRecord = function (source, target) {
         var field;
