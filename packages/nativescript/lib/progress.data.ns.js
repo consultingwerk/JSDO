@@ -1,7 +1,7 @@
 /*global localStorage: true, sessionStorage: true, btoa:true*/
 /*jslint nomen: true*/
 
-(function () {
+function loadNativeScriptDependencies() {
     // Code to detect enviroment and load required modules for NativeScript
     // Requirements:
     // - XMLHttpRequest (built-in in NativeScript)
@@ -38,7 +38,9 @@
         console.error("Error: JSDO library requires btoa() function in NativeScript.\n"
             + "Please install base-64 package.");
     }
-}());
+};
+
+exports.loadNativeScriptDependencies = loadNativeScriptDependencies;
 
 "use strict";
 /*
@@ -334,7 +336,7 @@ var DataSource = /** @class */ (function () {
                 // Paging is only used if the skip and top is being used during the fill.
                 if (typeof params !== "undefined" &&
                     (typeof _this._options.countFnName !== "undefined" && typeof params.skip !== "undefined" && typeof params.top !== "undefined")
-                    && !(params.skip === 0 && params.top > data.length)) {
+                    && !(params.skip === 0 && params.top > data.length)) { // Server-side operations
                     _this.getRecCount(_this._options.countFnName, { filter: result.request.objParam ? result.request.objParam.filter : undefined })
                         .then(function (res) {
                         if (res === undefined && res == null) {
@@ -548,7 +550,7 @@ var DataSource = /** @class */ (function () {
                     else if (result.request && result.request.batch.operations.length === 0) {
                         resolve({});
                     }
-                    else {
+                    else { // Reject promise if either of above cases are not met
                         reject(_this
                             .normalizedErrorObj(result, "saveChanges", "Errors occurred while saving Changes."));
                     }
@@ -754,7 +756,7 @@ var DataSource = /** @class */ (function () {
                     if (firstKey !== this._tableRef) {
                         target[firstKey][this._tableRef].push(newEntry[firstKey][this._tableRef][0]);
                     }
-                    else {
+                    else { // Temp-table usecase
                         target[this._tableRef].push(newEntry[this._tableRef][0]);
                     }
                     return target;

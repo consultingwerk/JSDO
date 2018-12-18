@@ -40,18 +40,14 @@ limitations under the License.
     // - nativescript-localstorage
     // - base-64
 
-    var isNativeScript = false,
-        isNodeJS = false;
+    // Radu Nicoara, 16.11.2018
+    // Disable support for {N} in core module completely
+    // Use {N} data source for {N} support
+
+    var isNodeJS = false;
 
     var pkg_xmlhttprequest              = "xmlhttprequest",
-        pkg_nodeLocalstorage            = "node-localstorage",
-        pkg_nativescriptLocalstorage    = "nativescript-localstorage",
-        pkg_fileSystemAccess            = "file-system/file-system-access",
-        // Radu Nicoara, 07.08.2018
-        // Use variable "hack" for base-64 NativeScript dependency,
-        // to prevent module not found warning in Angular builds
-        pkg_base64                      = "base-64"
-        ;
+        pkg_nodeLocalstorage            = "node-localstorage"
 
     // If XMLHttpRequest is undefined, enviroment would appear to be Node.js
     // load xmlhttprequest module
@@ -68,48 +64,6 @@ limitations under the License.
         }
     }
 
-    // Detect if the environment is NativeScript
-    if (!isNodeJS
-        && (typeof localStorage === "undefined"
-            || typeof sessionStorage === "undefined")) {
-        try {
-            require("" + pkg_fileSystemAccess);
-            isNativeScript = true;
-        } catch(exception1) {
-            isNativeScript = false;
-        }
-    }
-
-    // If localStorage or sessionStorage is not defined,
-    // we need to load the corresponding support module
-
-    // If environment is NativeScript, load required modules
-    if (isNativeScript) {
-        try {
-            // load module nativescript-localstorage
-            if (typeof sessionStorage === "undefined") {
-                sessionStorage = require("" + pkg_nativescriptLocalstorage);
-            }
-            if (typeof localStorage === "undefined") {
-                localStorage = require("" + pkg_nativescriptLocalstorage);
-            }
-        } catch(exception2) {
-            console.error("Error: JSDO library requires localStorage and sessionStorage objects in NativeScript.\n"
-                + "Please install nativescript-localstorage package.");
-        }
-
-        // load module base-64
-        try {
-            if (typeof btoa === "undefined") {
-                // Radu Nicoara, 07.08.2018
-                // Use base64 variable to prevent module not found warning in Angular builds
-                btoa = require("" + pkg_base64).encode;
-            }
-        } catch(exception3) {
-            console.error("Error: JSDO library requires btoa() function in NativeScript.\n"
-                + "Please install base-64 package.");
-        }
-    }
 
     // If environment is NodeJS, load module node-localstorage
     if (isNodeJS) {
@@ -133,7 +87,9 @@ limitations under the License.
         // load module base-64
         try {
             if (typeof btoa === "undefined") {
-                btoa = require("" + pkg_base64).encode;
+                // Radu Nicoara, 16.11.2018
+                // Use node.js Buffer.toString() instead of base-64 module
+                btoa = function(str) { return Buffer.from(str).toString('base64') }
             }
         } catch(exception3) {
             console.error("Error: JSDO library requires btoa() function in Node.js.\n"

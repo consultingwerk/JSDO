@@ -93,14 +93,14 @@ export declare class DataSource {
      * Returns array of record objects
      * @returns Array<object>
      */
-    private getJsdoData();
+    private getJsdoData;
     /**
      * This method is used for fetching the 'count' of records from backend
      * This method is used as part of read() operation when serverOperations is set by client
      * @param {string} name Name of the method pertaining to 'Count' functionality
      * @param {any} object Filter object
      */
-    private getRecCount(name, object);
+    private getRecCount;
     /**
      * This method is called after an error has occurred on a jsdo operation, and is
      * used to get an error message.
@@ -110,7 +110,7 @@ export declare class DataSource {
      * this string will be returned. If not specified, first error string will be returned.
      * @returns A single error message
      */
-    private normalizeError(result, operation, genericMsg);
+    private normalizeError;
     /**
      * This method is called after an error has occurred on a jsdo operation, and is
      * used to get an error object.
@@ -121,13 +121,13 @@ export declare class DataSource {
      * string will be returned.
      * @returns A single error object with all information
      */
-    private normalizedErrorObj(result, operation, genericMsg);
-    private _copyRecord(source, target);
+    private normalizedErrorObj;
+    private _copyRecord;
     /**
      * This method is responsible for building a valid responseObject when multiple records
      * are involved in transaction
      * @param source  Actual dataset/record to be merged
      * @param target  Resultant dataset with all records information
      */
-    private _buildResponse(source, target);
+    private _buildResponse;
 }
