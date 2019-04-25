@@ -1,6 +1,6 @@
 {
   "name": "@consultingwerk/smartcomponents-jsdo",
-  "version": "6.0.0",
+  "version": "6.0.4",
   "description": "The JSDO is a JavaScript implementation of the CDO Specification published by Progress Software Corporation.\r The JSDO is a free and open-source full-featured implementation that can be used in web, mobile web and hybrid mobile apps.",
   "main": "lib/progress.all.min.js",
   "files": [
@@ -40,10 +40,10 @@
   "peerDependencies": {},
   "optionalDependencies": {},
   "devDependencies": {
-    "base-64": "^0.1.0",
     "chai": "^4.1.2",
     "chai-as-promised": "^7.1.1",
     "concat": "^1.0.3",
+    "eslint": "^5.7.0",
     "mkdirp": "^0.5.1",
     "mocha": "^5.2.0",
     "mocha-teamcity-reporter": "^2.4.0",

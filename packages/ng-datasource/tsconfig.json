@@ -18,6 +18,12 @@
         "paths": {
             "*": [
                 "./node_modules/*"
+            ],
+            "@consultingwerk/smartcomponents-jsdo-core": [
+                "../core/lib/progress.core.js"
+            ],
+            "@consultingwerk/smartcomponents-jsdo-core/*": [
+                "../core/lib/progress.core.js"
             ]
         }
     },

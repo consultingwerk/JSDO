@@ -44,9 +44,9 @@ exports.loadNativeScriptDependencies = loadNativeScriptDependencies;
 
 "use strict";
 /*
-Progress Progress Data Source for Angular: 6.0.0
+Progress Progress Data Source for Angular
 
-Copyright 2017-2018 Progress Software Corporation and/or its subsidiaries or affiliates.
+Copyright 2017-2019 Progress Software Corporation and/or its subsidiaries or affiliates.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -60,7 +60,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-progress.data.ng.ds.ts    Version: v6.0.0
+progress.data.ng.ds.ts
 
 Progress Data Source class for NativeScript, Angular. This will provide a seamless integration
 between OpenEdge (Progress Data Object) with NativeScript.

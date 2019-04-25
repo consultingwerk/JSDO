@@ -94,12 +94,13 @@ gulp.task('compile ng', function () {
         baseUrl: '.',
         paths: {
             '@consultingwerk/smartcomponents-jsdo-core': [
-                'packages/core'
+                'packages/core/lib/progress.core.js'
             ],
             '@consultingwerk/smartcomponents-jsdo-core/*': [
-                'packages/core/*'
+                'packages/core/lib/progress.core.js'
             ]
-        }
+        },
+        baseUrl: './'
     })()).pipe(gulp.dest('packages/ng-datasource/src/'));
 });
 

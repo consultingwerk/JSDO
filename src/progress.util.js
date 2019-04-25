@@ -1,9 +1,8 @@
 /*eslint no-global-assign: ["error", {"exceptions": ["localStorage"]}]*/
 /*global XMLHttpRequest:true, require, console, localStorage:true, sessionStorage:true, $:true, Promise, setTimeout */
 /*
-progress.util.js    Version: 6.0.0
 
-Copyright (c) 2014-2018 Progress Software Corporation and/or its subsidiaries or affiliates.
+Copyright (c) 2014-2019 Progress Software Corporation and/or its subsidiaries or affiliates.
 
 Contains support objects used by the jsdo and/or session object
 
@@ -35,10 +34,8 @@ limitations under the License.
     // Required packages should be installed before loading progress-jsdo.
     // Node.js:
     // - xmlhttprequest
-    // - node-localstorage
     // NativeScript:
     // - nativescript-localstorage
-    // - base-64
 
     // Radu Nicoara, 16.11.2018
     // Disable support for {N} in core module completely
@@ -48,6 +45,18 @@ limitations under the License.
 
     var pkg_xmlhttprequest              = "xmlhttprequest",
         pkg_nodeLocalstorage            = "node-localstorage"
+        pkg_nativescriptLocalstorage    = "nativescript-localstorage",
+        pkg_fileSystemAccess            = "file-system/file-system-access"
+        ;
+
+    //In memory localStorage emulation used for node 
+    function LocalStorageEmulation() {
+        this._data = {};
+    };
+    LocalStorageEmulation.prototype.setItem = function(id, val) { return this._data[id] = String(val); },
+    LocalStorageEmulation.prototype.getItem = function(id) { return this._data.hasOwnProperty(id) ? this._data[id] : undefined; },
+    LocalStorageEmulation.prototype.removeItem = function(id) { return delete this._data[id]; },
+    LocalStorageEmulation.prototype.clear = function() { return this._data = {}; }
 
     // If XMLHttpRequest is undefined, enviroment would appear to be Node.js
     // load xmlhttprequest module
@@ -64,27 +73,16 @@ limitations under the License.
         }
     }
 
-
-    // If environment is NodeJS, load module node-localstorage
     if (isNodeJS) {
-        var LocalStorage;
         if (typeof localStorage === "undefined") {
-            try {
-                var module = require("" + pkg_nodeLocalstorage);
-                LocalStorage = module.LocalStorage;
-                localStorage = new LocalStorage('./scratch1');
-            } catch(e) {
-                console.error("Error: JSDO library requires localStorage and sessionStorage objects in Node.js.\n"
-                    + "Please install node-localstorage package.");
-            }
+			localStorage = new LocalStorageEmulation();
         }
 
-        if (typeof sessionStorage === "undefined"
-            && typeof LocalStorage !== "undefined") {
-            sessionStorage = new LocalStorage('./scratch2');
+        if (typeof sessionStorage === "undefined") {
+            sessionStorage = new LocalStorageEmulation();
         }
 
-        // load module base-64
+        // Polyfill the btoa() function (which we use to encode BASIC authorization)
         try {
             if (typeof btoa === "undefined") {
                 // Radu Nicoara, 16.11.2018
@@ -92,8 +90,22 @@ limitations under the License.
                 btoa = function(str) { return Buffer.from(str).toString('base64') }
             }
         } catch(exception3) {
-            console.error("Error: JSDO library requires btoa() function in Node.js.\n"
-                + "Please install base-64 package.");
+            console.error("Error: JSDO library requires toString('base64')function in Node.js.");
+        }
+    }
+
+    // If we're running in the browser, edit btoa() to properly encode Unicode strings
+    // taken from https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/btoa#Unicode_strings
+    if (!isNodeJS) {
+        if (typeof btoa !== "undefined") {
+            let btoaOriginal = btoa;
+
+            // this section of code is functionally identical to the toString('base-64')
+            // btoa() doesn't exist on node though, which is why we have different styles
+            // of encoding in NS/node
+            btoa = function (str) {
+                return btoaOriginal(unescape(encodeURIComponent(str)));
+            };
         }
     }
 }());

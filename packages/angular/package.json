@@ -1,6 +1,11 @@
 {
+<<<<<<< HEAD
   "name": "@consultingwerk/smartcomponents-jsdo-angular",
   "version": "6.0.0",
+=======
+  "name": "@progress/jsdo-angular",
+  "version": "6.0.1",
+>>>>>>> 319202b27d5486ae5023d0351e5a4af4d68f3230
   "description": "The Progress Data Source is a TypeScript implementation - Progress Data Source class for NativeScript, Angular. This will provide a seamless integration between OpenEdge (Progress Data Object) with Angular.",
   "main": "lib/progress.data.angular.js",
   "files": [
@@ -33,10 +38,14 @@
   },
   "homepage": "https://github.com/progress/JSDO#readme",
   "dependencies": {
+<<<<<<< HEAD
     "@angular/core": "^5.2.1",
     "@progress/jsdo-core": "^6.0.0",
     "base-64": "^0.1.0",
     "rxjs": "^5.5.6"
+=======
+    "@progress/jsdo-core": "^6.0.1"
+>>>>>>> 319202b27d5486ae5023d0351e5a4af4d68f3230
   },
   "peerDependencies": {
     "@angular/core": "^6.1.0",
