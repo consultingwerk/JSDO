@@ -116,3 +116,5 @@ export declare class DataSource {
      */
     private _buildResponse(source, target);
 }
+
+export function loadNativeScriptDependencies();

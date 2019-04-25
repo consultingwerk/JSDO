@@ -60,7 +60,7 @@ gulp.task('concat jsdo', function () {
         .pipe(gulp.dest('lib/'));
 });
 
-gulp.task('build jsdo', sequence('cleanup', 'concat all', 'concat jsdo', 'minify'));
+gulp.task('build jsdo', sequence('cleanup', 'concat all', 'concat jsdo'));
 
 /* Core package tasks */
 
@@ -128,7 +128,10 @@ gulp.task('concat ns', function () {
 });
 
 gulp.task('ns typings', function () {
-    return gulp.src(['packages/ng-datasource/typings/progress.data.ng.ds.d.ts']).pipe(rename('progress.data.ns.d.ts')).pipe(gulp.dest('packages/nativescript/typings/'));
+    return gulp.src([
+        'packages/ng-datasource/typings/progress.data.ng.ds.d.ts',
+        'packages/nativescript/src/loaddep.d.ts'
+    ]).pipe(concat('progress.data.ns.d.ts')).pipe(gulp.dest('packages/nativescript/typings/'));
 });
 
 gulp.task('ns license', function () {

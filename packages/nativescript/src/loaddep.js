@@ -1,7 +1,7 @@
 /*global localStorage: true, sessionStorage: true, btoa:true*/
 /*jslint nomen: true*/
 
-(function () {
+function loadNativeScriptDependencies() {
     // Code to detect enviroment and load required modules for NativeScript
     // Requirements:
     // - XMLHttpRequest (built-in in NativeScript)
@@ -38,4 +38,6 @@
         console.error("Error: JSDO library requires btoa() function in NativeScript.\n"
             + "Please install base-64 package.");
     }
-}());
+};
+
+exports.loadNativeScriptDependencies = loadNativeScriptDependencies;

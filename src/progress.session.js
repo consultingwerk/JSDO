@@ -3085,7 +3085,10 @@ limitations under the License.
                         url += jsessionidStr;  // just append the jsessionid path parameter to the path
                     } else {
                         // insert jsessionid path parameter before the first query parameter
-                        urlPart1 = url.substring(0, index);
+                        // Radu Nicoara
+                        // urlPart1 needs to be until index + 1, since substring() does
+                        // not include the character at the end index
+                        urlPart1 = url.substring(0, index + 1);
                         urlPart2 = url.substring(index);
                         url = urlPart1 + jsessionidStr + urlPart2;
                     }
