@@ -17,8 +17,11 @@ limitations under the License.
 
  */
 
+// Radu Nicoara, 18.09.2019
+// Use "local" var declaration to prevent "progress is not defined error"
+var progress = typeof progress === 'undefined' ? {} : progress;
 /*global $, progress:true*/
-(function () {
+(function (progress) {
 
     // "use strict";
     
@@ -7640,6 +7643,6 @@ limitations under the License.
             template ? template : progress.ui.UIHelper._defaultFieldTemplate;
     };
 
-})();
+})(progress);
 
 //this is so that we can see the code in Chrome's Source tab when script is loaded via XHR

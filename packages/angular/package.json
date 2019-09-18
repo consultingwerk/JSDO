@@ -32,15 +32,16 @@
     "url": "https://github.com/progress/JSDO/issues"
   },
   "homepage": "https://github.com/progress/JSDO#readme",
-  "dependencies": {
-    "@angular/core": "^5.2.1",
-    "@progress/jsdo-core": "^6.0.0",
-    "base-64": "^0.1.0",
-    "rxjs": "^5.5.6"
+  "dependencies": {},
+  "devDependencies": {
+    "@angular/core": "^6.1.0",
+    "rxjs": "^6.0.0"
   },
   "peerDependencies": {
     "@angular/core": "^6.1.0",
-    "rxjs": "^6.0.0"
+    "rxjs": "^6.0.0",
+    "@consultingwerk/jsdo-core": "^6.0.0",
+    "base-64": "^0.1.0"
   },
   "optionalDependencies": {}
 }

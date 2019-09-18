@@ -386,7 +386,7 @@ export class DataSource {
             }
         );
 
-        obs = from(wrapperPromise);
+        obs = from<Promise<DataResult>>(wrapperPromise);
         obs.pipe(catchError((e) => {
             return [];
         }));
@@ -605,7 +605,7 @@ export class DataSource {
             }
         );
 
-        obs = from(promise);
+        obs = from<Promise<object[]>>(promise);
         obs.pipe(catchError((e) => {
             return [];
         }));

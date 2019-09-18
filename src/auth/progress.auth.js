@@ -16,8 +16,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
  */
-
-(function () {
+// Radu Nicoara, 18.09.2019
+// Use "local" var declaration to prevent "progress is not defined error"
+var progress = typeof progress === 'undefined' ? {} : progress;
+(function (progress) {
 
     "use strict";  // note that this makes JSLint complain if you use arguments[x]
 
@@ -466,5 +468,5 @@ limitations under the License.
         enumerable: true
     });
 
-}());
+}(progress));
 

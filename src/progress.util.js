@@ -22,8 +22,10 @@ limitations under the License.
  */
 /*global progress:true, btoa:true*/
 /*jslint nomen: true*/
-
-(function () {
+// Radu Nicoara, 18.09.2019
+// Use "local" var declaration to prevent "progress is not defined error"
+var progress = typeof progress === 'undefined' ? {} : progress;
+(function (progress) {
     // Pre-release code to detect enviroment and load required modules for Node.js and NativeScript
     // Requirements:
     // - XMLHttpRequest
@@ -96,9 +98,9 @@ limitations under the License.
                 + "Please install base-64 package.");
         }
     }
-}());
+}(progress));
 
-(function () {
+(function (progress) {
 
     /* Define these if not defined yet - they may already be defined if
      * progress.js was included first */
@@ -286,7 +288,7 @@ limitations under the License.
         };
 
         return Deferred;
-    }());
+    }(progress));
 
     /**
      * Utility class that allows subscribing and unsubscribing from named events.
@@ -1038,4 +1040,4 @@ limitations under the License.
         }
     };
 
-}());
+}(progress));

@@ -18,7 +18,10 @@ limitations under the License.
 */
 
 /*global progress:true */
-(function () {
+// Radu Nicoara, 18.09.2019
+// Use "local" var declaration to prevent "progress is not defined error"
+var progress = typeof progress === 'undefined' ? {} : progress;
+(function (progress) {
 
     /* define these if not defined yet - they may already be defined if
      progress.js was included first */
@@ -3082,13 +3085,13 @@ limitations under the License.
                     jsessionidStr = "JSESSIONID=" + this.clientContextId + "&";
                     index = url.indexOf('?');
                     if (index === -1) {
-                        url += jsessionidStr;  // just append the jsessionid path parameter to the path
+                        url += '?' + jsessionidStr;  // just append the jsessionid path parameter to the path
                     } else {
                         // insert jsessionid path parameter before the first query parameter
                         // Radu Nicoara
                         // urlPart1 needs to be until index + 1, since substring() does
                         // not include the character at the end index
-                        urlPart1 = url.substring(0, index + 1);
+                        urlPart1 = url.substring(0, index);
                         urlPart2 = url.substring(index);
                         url = urlPart1 + jsessionidStr + urlPart2;
                     }
@@ -4972,7 +4975,7 @@ limitations under the License.
         return deferred.promise();
     }; 
 
-})();
+})(progress);
 
 if (typeof exports !== "undefined") {
     exports.progress = progress;
