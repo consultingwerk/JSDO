@@ -3091,7 +3091,7 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                         // Radu Nicoara
                         // urlPart1 needs to be until index + 1, since substring() does
                         // not include the character at the end index
-                        urlPart1 = url.substring(0, index);
+                        urlPart1 = url.substring(0, index + 1);
                         urlPart2 = url.substring(index);
                         url = urlPart1 + jsessionidStr + urlPart2;
                     }

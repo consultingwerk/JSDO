@@ -97,6 +97,17 @@ var progress = typeof progress === 'undefined' ? {} : progress;
             console.error("Error: JSDO library requires btoa() function in Node.js.\n"
                 + "Please install base-64 package.");
         }
+        // Radu Nicoara, 03.04.2020
+        // Emulate session storage if not present
+    } else if (typeof sessionStorage === 'undefined') {
+            function LocalStorageEmulation() {
+                this._data = {};
+            };
+            LocalStorageEmulation.prototype.setItem = function(id, val) { return this._data[id] = String(val); },
+            LocalStorageEmulation.prototype.getItem = function(id) { return this._data.hasOwnProperty(id) ? this._data[id] : undefined; },
+            LocalStorageEmulation.prototype.removeItem = function(id) { return delete this._data[id]; },
+            LocalStorageEmulation.prototype.clear = function() { return this._data = {}; }
+            sessionStorage = new LocalStorageEmulation();
     }
 }(progress));
 
