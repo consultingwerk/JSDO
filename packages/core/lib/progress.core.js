@@ -1,9 +1,8 @@
 /*eslint no-global-assign: ["error", {"exceptions": ["localStorage"]}]*/
 /*global XMLHttpRequest:true, require, console, localStorage:true, sessionStorage:true, $:true, Promise, setTimeout */
 /*
-progress.util.js    Version: 6.0.0
 
-Copyright (c) 2014-2018 Progress Software Corporation and/or its subsidiaries or affiliates.
+Copyright (c) 2014-2019 Progress Software Corporation and/or its subsidiaries or affiliates.
 
 Contains support objects used by the jsdo and/or session object
 
@@ -37,10 +36,8 @@ var progress = typeof progress === 'undefined' ? {} : progress;
     // Required packages should be installed before loading progress-jsdo.
     // Node.js:
     // - xmlhttprequest
-    // - node-localstorage
     // NativeScript:
     // - nativescript-localstorage
-    // - base-64
 
     // Radu Nicoara, 16.11.2018
     // Disable support for {N} in core module completely
@@ -50,6 +47,15 @@ var progress = typeof progress === 'undefined' ? {} : progress;
 
     var pkg_xmlhttprequest              = "xmlhttprequest",
         pkg_nodeLocalstorage            = "node-localstorage"
+
+    //In memory localStorage emulation used for node 
+    function LocalStorageEmulation() {
+        this._data = {};
+    };
+    LocalStorageEmulation.prototype.setItem = function(id, val) { return this._data[id] = String(val); },
+    LocalStorageEmulation.prototype.getItem = function(id) { return this._data.hasOwnProperty(id) ? this._data[id] : undefined; },
+    LocalStorageEmulation.prototype.removeItem = function(id) { return delete this._data[id]; },
+    LocalStorageEmulation.prototype.clear = function() { return this._data = {}; }
 
     // If XMLHttpRequest is undefined, enviroment would appear to be Node.js
     // load xmlhttprequest module
@@ -67,26 +73,16 @@ var progress = typeof progress === 'undefined' ? {} : progress;
     }
 
 
-    // If environment is NodeJS, load module node-localstorage
     if (isNodeJS) {
-        var LocalStorage;
         if (typeof localStorage === "undefined") {
-            try {
-                var module = require("" + pkg_nodeLocalstorage);
-                LocalStorage = module.LocalStorage;
-                localStorage = new LocalStorage('./scratch1');
-            } catch(e) {
-                console.error("Error: JSDO library requires localStorage and sessionStorage objects in Node.js.\n"
-                    + "Please install node-localstorage package.");
-            }
+			localStorage = new LocalStorageEmulation();
         }
 
-        if (typeof sessionStorage === "undefined"
-            && typeof LocalStorage !== "undefined") {
-            sessionStorage = new LocalStorage('./scratch2');
+        if (typeof sessionStorage === "undefined") {
+            sessionStorage = new LocalStorageEmulation();
         }
 
-        // load module base-64
+        // Polyfill the btoa() function (which we use to encode BASIC authorization)
         try {
             if (typeof btoa === "undefined") {
                 // Radu Nicoara, 16.11.2018
@@ -94,8 +90,22 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                 btoa = function(str) { return Buffer.from(str).toString('base64') }
             }
         } catch(exception3) {
-            console.error("Error: JSDO library requires btoa() function in Node.js.\n"
-                + "Please install base-64 package.");
+            console.error("Error: JSDO library requires toString('base64')function in Node.js.");
+        }
+    }
+
+    // If we're running in the browser, edit btoa() to properly encode Unicode strings
+    // taken from https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/btoa#Unicode_strings
+    if (!isNodeJS) {
+        if (typeof btoa !== "undefined") {
+            let btoaOriginal = btoa;
+
+            // this section of code is functionally identical to the toString('base-64')
+            // btoa() doesn't exist on node though, which is why we have different styles
+            // of encoding in NS/node
+            btoa = function (str) {
+                return btoaOriginal(unescape(encodeURIComponent(str)));
+            };
         }
         // Radu Nicoara, 03.04.2020
         // Emulate session storage if not present
@@ -134,7 +144,7 @@ var progress = typeof progress === 'undefined' ? {} : progress;
      *
      * @class
      */
-    progress.util.Deferred = /** @class */ (function () {
+    progress.util.Deferred = /** @class */ (function (progress) {
         function Deferred() {
             this._deferred = {};
         }
@@ -1054,9 +1064,7 @@ var progress = typeof progress === 'undefined' ? {} : progress;
 }(progress));
 
 /* 
-progress.js    Version: 6.0.0
-
-Copyright (c) 2012-2018 Progress Software Corporation and/or its subsidiaries or affiliates.
+Copyright (c) 2012-2019 Progress Software Corporation and/or its subsidiaries or affiliates.
  
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -7437,67 +7445,75 @@ var progress = typeof progress === 'undefined' ? {} : progress;
             var xhr = this;
             if (xhr.readyState == 4) {
                 var request = xhr.request;
-
-                /* try to parse response even if request is considered "failed" due to http status */
                 try {
-                    request.response = JSON.parse(xhr.responseText);
-                    // in some cases the object back from appserver has a "response" property which represents
-                    // the real content of the JSON...happens when multiple output parameters are returned.
-                    // this of course assumes no one names their root object "response".
-                    if (request.response && request.response.response) {
-                        request.response = request.response.response;
+
+                    /* try to parse response even if request is considered "failed" due to http status */
+                    try {
+                        request.response = JSON.parse(xhr.responseText);
+                        // in some cases the object back from appserver has a "response" property which represents
+                        // the real content of the JSON...happens when multiple output parameters are returned.
+                        // this of course assumes no one names their root object "response".
+                        if (request.response && request.response.response) {
+                            request.response = request.response.response;
+                        }
+                    } catch (e) {
+                        request.response = undefined;
                     }
-                } catch (e) {
-                    request.response = undefined;
-                }
 
-                try {
-                    if ((xhr.status >= 200 && xhr.status < 300) 
-                        || (xhr.status === 0 && xhr.responseText !== "")) {
-                            
-                        request.success = true;
-                        // get the Client Context ID (AppServer ID)
-                        xhr.jsdo._session._saveClientContextId(xhr); 
-                        if ((typeof xhr.onSuccessFn) == 'function') {
-                            var operation;
-                            if (xhr.request.fnName !== undefined
-                                && xhr.jsdo._resource.fn[xhr.request.fnName] !== undefined) {
-                                operation = xhr.jsdo._resource.fn[xhr.request.fnName].operation;
+                    try {
+                        if ((xhr.status >= 200 && xhr.status < 300) 
+                            || (xhr.status === 0 && xhr.responseText !== "")) {
+                                
+                            request.success = true;
+                            // get the Client Context ID (AppServer ID)
+                            xhr.jsdo._session._saveClientContextId(xhr); 
+                            if ((typeof xhr.onSuccessFn) == 'function') {
+                                var operation;
+                                if (xhr.request.fnName !== undefined
+                                    && xhr.jsdo._resource.fn[xhr.request.fnName] !== undefined) {
+                                    operation = xhr.jsdo._resource.fn[xhr.request.fnName].operation;
+                                }
+                                else
+                                    operation = null;
+                                if ((operation === undefined) || (operation !== null && operation.mergeMode))
+                                    xhr.jsdo._mergeInvoke(request.response, xhr);
+                                if (request.success)
+                                    xhr.onSuccessFn(xhr.jsdo, request.success, request);
+                                else if ((typeof xhr.onErrorFn) == 'function')
+                                    xhr.onErrorFn(xhr.jsdo, request.success, request);
                             }
-                            else
-                                operation = null;
-                            if ((operation === undefined) || (operation !== null && operation.mergeMode))
-                                xhr.jsdo._mergeInvoke(request.response, xhr);
-                            if (request.success)
-                                xhr.onSuccessFn(xhr.jsdo, request.success, request);
-                            else if ((typeof xhr.onErrorFn) == 'function')
-                                xhr.onErrorFn(xhr.jsdo, request.success, request);
-                        }
 
-                    } else {
-                        request.success = false;
-                        if (xhr.status === 0) {
-                            request.exception = new Error(msg.getMsgText("jsdoMSG101"));
+                        } else {
+                            request.success = false;
+                            if (xhr.status === 0) {
+                                request.exception = new Error(msg.getMsgText("jsdoMSG101"));
+                            }
+                            if ((typeof xhr.onErrorFn) == 'function') {
+                                xhr.onErrorFn(xhr.jsdo, request.success, request);
+                            }
                         }
+                    } catch (e) {
+                        request.success = false;				
+                        request.exception = e;
                         if ((typeof xhr.onErrorFn) == 'function') {
                             xhr.onErrorFn(xhr.jsdo, request.success, request);
                         }
                     }
-                } catch (e) {
-                    request.success = false;				
-                    request.exception = e;
-                    if ((typeof xhr.onErrorFn) == 'function') {
-                        xhr.onErrorFn(xhr.jsdo, request.success, request);
+                    // get the Client Context ID (AppServer ID)
+                    xhr.jsdo._session._checkServiceResponse(xhr, request.success, request);
+
+                    if ((typeof xhr.onCompleteFn) == 'function') {
+                        xhr.onCompleteFn(xhr.jsdo, request.success, request);
                     }
-                }
-                // get the Client Context ID (AppServer ID)
-                xhr.jsdo._session._checkServiceResponse(xhr, request.success, request);
 
-                if ((typeof xhr.onCompleteFn) == 'function') {
-                    xhr.onCompleteFn(xhr.jsdo, request.success, request);
+                    } catch (e) {
+                        request.success = false;				
+                        request.exception = e;
+                        if ((typeof xhr.onErrorFn) == 'function') {
+                            xhr.onErrorFn(xhr.jsdo, request.success, request);
+                        }
+                    } 
                 }
-
-            }
         };
 
         /*
@@ -8240,15 +8256,17 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                     }
                 }
                 
-                // Mike Fechner, Consultingwerk Ltd. 16.03.2016
+				// Christian Bryan - 10.02.2019 Add this back in
+                // Mike Fechner, Consultingwerk Ltd. 16.03.2016                
                 // Adding the tableRef property of the JSDO Parameters to
                 // the Filter Parameter so that the backend can use this
                 // information to actually know which Business Entity Table
-                // the query filter string is intended for ...                
+                // the query filter string is intended for ...
+
                 filter = JSON.stringify({
                     ablFilter: ablFilter,
-                    tableRef: params.tableRef,
-                    viewTables: jsdo.viewTables,
+					tableRef: params.tableRef, 
+					viewTables: jsdo.viewTables, 
                     sqlQuery: sqlQuery,
                     orderBy: sortFields,
                     skip: params.skip,
@@ -8703,9 +8721,8 @@ var progress = typeof progress === 'undefined' ? {} : progress;
 //this is so that we can see the code in Chrome's Source tab when script is loaded via XHR
 
 /* 
-progress.auth.js    Version: 6.0.0
 
-Copyright (c) 2016-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
+Copyright (c) 2016-2019 Progress Software Corporation and/or its subsidiaries or affiliates.
  
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -8794,6 +8811,9 @@ var progress = typeof progress === 'undefined' ? {} : progress;
         case progress.data.Session.AUTH_TYPE_FORM_SSO:
             authProv = new progress.data.AuthenticationProviderSSO(initObject.uri);
             break;
+        case progress.data.Session.AUTH_TYPE_BEARER:
+            authProv = new progress.data.AuthenticationProviderBearer(initObject.uri);
+            break;
         default:
             // AuthenticationProvider: The 'init-object' parameter passed to the 'constructor' function
             //                          has an invalid value for the 'authenticationModel' property.
@@ -8835,7 +8855,10 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                 xhr.onreadystatechange = function () {
                     if (xhr.readyState === 4) {
                         // process the response from the Web application
-                        that._processLoginResult(xhr, deferred);
+                        try {
+                            that._processLoginResult(xhr, deferred);
+                        } catch (e) {
+                        }
                     }
                 };
 
@@ -9176,9 +9199,8 @@ var progress = typeof progress === 'undefined' ? {} : progress;
 
 
 /* 
-progress.auth.basic.js    Version: 6.0.0
 
-Copyright (c) 2016-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
+Copyright (c) 2016-2019 Progress Software Corporation and/or its subsidiaries or affiliates.
  
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -9335,9 +9357,8 @@ limitations under the License.
 }());
 
 /* 
-progress.auth.form.js    Version: 6.0.0
 
-Copyright (c) 2016-2018 Progress Software Corporation and/or its subsidiaries or affiliates.
+Copyright (c) 2016-2019 Progress Software Corporation and/or its subsidiaries or affiliates.
  
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -9454,7 +9475,10 @@ limitations under the License.
                 xhr.onreadystatechange = function () {
                     if (xhr.readyState === 4) {
                         // process the response from the Web application
-                        that._processLogoutResult(xhr, deferred);
+                        try {
+                            that._processLogoutResult(xhr, deferred);
+                        } catch (e) {
+                        }
                     }
                 };
 
@@ -9547,9 +9571,8 @@ limitations under the License.
 }());
 
 /* 
-progress.auth.sso.js    Version: 6.0.0
 
-Copyright (c) 2016-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
+Copyright (c) 2016-2019 Progress Software Corporation and/or its subsidiaries or affiliates.
  
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -9906,7 +9929,10 @@ limitations under the License.
                 xhr.onreadystatechange = function () {
                     if (xhr.readyState === 4) {
                         // process the response from the Web application
-                        processRefreshResult(xhr, deferred);
+                        try {
+                            processRefreshResult(xhr, deferred);
+                        } catch (e){
+                        }
                     }
                 };
 
@@ -10040,10 +10066,155 @@ limitations under the License.
 }());
 
 
-/*
-progress.session.js    Version: 6.0.0
+/* 
 
-Copyright (c) 2012-2018 Progress Software Corporation and/or its subsidiaries or affiliates.
+
+Copyright (c) 2017-2019 Progress Software Corporation and/or its subsidiaries or affiliates.
+ 
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+ 
+    http://www.apache.org/licenses/LICENSE-2.0
+ 
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+ */
+
+(function () {
+
+    "use strict";  // note that this makes JSLint complain if you use arguments[x]
+
+    /*global progress : true*/
+    /*global storage, XMLHttpRequest, msg, btoa*/
+
+    progress.data.AuthenticationProviderBearer = function (uri) {
+        var bearerToken = null,
+            fn;
+
+        // process constructor arguments, etc.
+        this._initialize(uri, progress.data.Session.AUTH_TYPE_BEARER,
+            {"_loginURI": progress.data.AuthenticationProvider._homeLoginURIBase});
+
+        // PRIVATE FUNCTIONS
+
+        function make_Bearer_auth_header(token) {
+            return "Bearer " + token;
+        }
+
+        // "INTERNAL" METHODS
+        // Override the protoype's method but call it from within the override
+        // (Define the override here in the constructor so it has access to instance variables)
+        this._reset = function () {
+            bearerToken = null;
+            progress.data.AuthenticationProviderBearer.prototype._reset.apply(this);
+        };
+
+        // Override the protoype's method (this method does not invoke the prototype's copy)
+        // (Define the override here in the constructor so it has access to instance variables)
+        this._openLoginRequest = function (xhr, uri) {
+            var auth;
+            
+            xhr.open("GET", uri, true);  // but see comments below inside the "if bearerToken"
+            // may have to go with that approach
+            
+            if (bearerToken) {
+                
+                // set Authorization header
+                auth = make_Bearer_auth_header(bearerToken);
+                xhr.setRequestHeader('Authorization', auth);
+            }
+
+            progress.data.Session._setNoCacheHeaders(xhr);
+        };
+
+        // Override the protoype's method but call it from within the override
+        // (Define the override here in the constructor so it has access to instance variables)
+        this._processLoginResult = function _Bearer_processLoginResult(xhr, deferred) {
+            progress.data.AuthenticationProviderBearer.prototype._processLoginResult.apply(
+                this,
+                [xhr, deferred]
+            );
+            if (!this._loggedIn) {
+                // login failed, clear the credentials
+                bearerToken = null;
+            }
+        };
+        
+        // Override the protoype's method (this method does not invoke the prototype's copy, but
+        // calls a prototype general-purpose login method)
+        // (Define the override here in the constructor so it has access to instance variables)
+        this.login = function (token) {
+            // these throw if the check fails (may want to do something more elegant)
+            this._checkStringArg("login", token, 1, "token");
+
+            bearerToken = token;
+            return this._loginProto();
+        };
+        
+        // Override the protoype's method (this method does not invoke the prototype's copy)
+        // (Define the override here in the constructor so it has access to instance variables)
+        // TODO: This method uses a callback, primarily to avoid breaking tdriver tests. We should change 
+        // it to use promises
+        this._openRequestAndAuthorize = function (xhr, verb, uri, async, callback) {
+            var auth,
+                errorObject;
+
+            if (this.hasClientCredentials()) {
+
+                xhr.open(verb, uri, async);  // but see comments below inside the "if bearerToken"
+                // may have to go with that approach
+
+                if (bearerToken) {
+
+                    // set Authorization header
+                    auth = make_Bearer_auth_header(bearerToken);
+                    xhr.setRequestHeader('Authorization', auth);
+                }
+
+                progress.data.Session._setNoCacheHeaders(xhr);
+            } else {
+                // AuthenticationProvider: The AuthenticationProvider is not managing valid credentials.
+                errorObject = new Error(progress.data._getMsgText("jsdoMSG125", "AuthenticationProvider"));
+            }
+
+            callback(errorObject);
+        };
+    };
+
+    
+    // Give this constructor the prototype from the "base" AuthenticationProvider
+    // Do this indirectly by way of an intermediate object so changes to the prototype ("method overrides")
+    // don't affect other types of AuthenticationProviders that use the prototype)
+    function BearerProxy() {}
+    BearerProxy.prototype = progress.data.AuthenticationProvider.prototype;
+    progress.data.AuthenticationProviderBearer.prototype = new BearerProxy();
+        
+    // Reset the prototype's constructor property so it points to AuthenticationProviderForm rather than
+    // the one that it just inherited (this is pretty much irrelevant though - the correct constructor
+    // will get called regardless)
+    progress.data.AuthenticationProviderBearer.prototype.constructor =
+        progress.data.AuthenticationProviderBearer;
+
+        
+    // OVERRIDE METHODS ON PROTOTYPE IF NECESSARY AND POSSIBLE
+    // (SOME METHODS ARE OVERRIDDEN IN THE CONSTRUCTOR BECAUSE THEY NEED ACCESS TO INSTANCE VARIABLES)
+
+    // NOTE: There are no overrides of the following methods (either here or in the constructor).
+    //       This object uses these methods from the original prototype(i.e., the implementations from the
+    //       AuthenticationProvider object):
+    //          logout (API method)
+    //          hasClientCredentials (API method)
+        
+}());
+
+/*
+
+Copyright (c) 2012-2019 Progress Software Corporation and/or its subsidiaries or affiliates.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -10842,7 +11013,9 @@ var progress = typeof progress === 'undefined' ? {} : progress;
             // connects to online the last time it was checked?
             // (value is always false if session is not logged in)
             oepingAvailable = false,
-            defaultPartialPingURI = "/rest/_oeping",
+            hasResolvedPingURI = false,
+            defaultPartialPingURI = "/rest/_oepingService/_oeping",
+            classicPartialPingURI = "/rest/_oeping",
             partialPingURI = defaultPartialPingURI,
             _storageKey,
             _authProvider = null,
@@ -11041,6 +11214,7 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                         case progress.data.Session.AUTH_TYPE_BASIC:
                         case progress.data.Session.AUTH_TYPE_ANON:
                         case progress.data.Session.AUTH_TYPE_SSO:
+                        case progress.data.Session.AUTH_TYPE_BEARER:
                         case null:
                             _authenticationModel = newval;
                             storeSessionInfo("authenticationModel", newval);
@@ -12150,7 +12324,8 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                 xhr._jsdosession = jsdosession;  // in case the caller is a JSDOSession
                 xhr._deferred = deferred;  // in case the caller is a JSDOSession
                 if (this.authenticationModel === progress.data.Session.AUTH_TYPE_FORM ||
-                        this.authenticationModel === progress.data.Session.AUTH_TYPE_BASIC) {
+                        this.authenticationModel === progress.data.Session.AUTH_TYPE_BASIC ||
+                            this.authenticationModel === progress.data.Session.AUTH_TYPE_BEARER) {
                     if (isAsync) {
                         xhr.onreadystatechange = this._onReadyStateChangeGeneric;
                         xhr.onResponseFn = this._processLogoutResult;
@@ -12246,7 +12421,8 @@ var progress = typeof progress === 'undefined' ? {} : progress;
             } else if (xhr.status !== 200) {
                 /* Determine whether an error returned from the server is really an error
                  */
-                if (pdsession.authenticationModel === progress.data.Session.AUTH_TYPE_BASIC) {
+                if (pdsession.authenticationModel === progress.data.Session.AUTH_TYPE_BASIC ||
+                        pdsession.authenticationModel === progress.data.Session.AUTH_TYPE_BEARER) {
                     /* If the Auth model is Basic, we probably got back a 404 Not found.
                      * But that's OK, because logout from Basic is meaningless on the
                      * server side unless it happens to be stateful, which is the only
@@ -12962,40 +13138,71 @@ var progress = typeof progress === 'undefined' ? {} : progress;
         this._onReadyStateChangePing = function () {
             var xhr = this;
             var args;
-
-            if (xhr.readyState === 4) {
-                args = {
-                    xhr: xhr,
-                    fireEventIfOfflineChange: true,
-                    offlineReason: null
-                };
-                that._processPingResult(args);
-                if (_pingInterval > 0) {
-                    _timeoutID = setTimeout(that._autoping, _pingInterval);
+            try {
+                if (xhr.readyState === 4) {
+                    args = {
+                        xhr: xhr,
+                        fireEventIfOfflineChange: true,
+                        offlineReason: null
+                    };
+                    that._processPingResult(args);
+                    if (_pingInterval > 0) {
+                        _timeoutID = setTimeout(that._autoping, _pingInterval);
+                    }
                 }
+            } catch(e) {
             }
         };
 
         this._pingtestOnReadyStateChange = function () {
             var xhr = this;
+            try {
+                if (xhr.readyState === 4) {
+                    var foundOeping = false;
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        foundOeping = true;
+                    } else {
+                        setPartialPingURI(that.loginTarget);
+                        console.warn("Default ping target not available, will use loginTarget instead.");
+                    }
+                    setOepingAvailable(foundOeping);
 
-            if (xhr.readyState === 4) {
-                var foundOeping = false;
-                if (xhr.status >= 200 && xhr.status < 300) {
-                    foundOeping = true;
-                } else {
-                    setPartialPingURI(that.loginTarget);
-                    console.warn("Default ping target not available, will use loginTarget instead.");
+                    // If we're here, we've just logged in. If pingInterval has been set, we need
+                    // to start autopinging
+                    if (_pingInterval > 0) {
+                        _timeoutID = setTimeout(that._autoping, _pingInterval);
+                    }
                 }
-                setOepingAvailable(foundOeping);
-
-                // If we're here, we've just logged in. If pingInterval has been set, we need
-                // to start autopinging
-                if (_pingInterval > 0) {
-                    _timeoutID = setTimeout(that._autoping, _pingInterval);
-                }
+            } catch(e) {
             }
         };
+
+        var resolvePingURI = () => {
+            var xhr = new XMLHttpRequest(),
+                deferred = new progress.util.Deferred();
+
+            xhr.onreadystatechange = () => {
+                if (xhr.readyState === 4) {
+                    // If we can't find the new ping endpoint, we go back to the Classic Ping URI.
+                    if (xhr.status === 404) {
+                        setPartialPingURI(classicPartialPingURI);
+                        deferred.reject(false);
+                    } else {
+                        deferred.resolve(true);
+                    }
+                    hasResolvedPingURI = true;
+                }
+            };
+
+            // if we've resolved the pingURI OR we haven't logged in, then we don't have to do anything 
+            if (hasResolvedPingURI || (this.loginResult !== progress.data.Session.LOGIN_SUCCESS && !this.authProvider)) {
+                deferred.resolve(true);
+            } else {
+                this._openRequest(xhr, "GET", partialPingURI, true, () => xhr.send());
+            }
+
+            return deferred.promise();
+        }
 
         /*
          * args: pingURI
@@ -13007,6 +13214,8 @@ var progress = typeof progress === 'undefined' ? {} : progress;
         this._sendPing = function (args) {
             var xhr = new XMLHttpRequest(),
                 that = this;
+
+            args.xhr = xhr;
 
             function sendPingAfterOpen() {
                 if (args.async) {
@@ -13027,30 +13236,35 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                 xhr.send(null);
             }
 
-            try {
-                if (this._authProvider) {
-                    this._authProvider._openRequestAndAuthorize(
-                        xhr,
-                        'GET',
-                        args.pingURI,
-                        args.async,
-                        sendPingAfterOpen
-                    );
-                } else {
-                    // get rid of this if we do away with synchronous support (i.e., customer use of
-                    // old Session API)
-                    this._setXHRCredentials(xhr, "GET", args.pingURI, this.userName, _password, args.async);
-
-                    // Sending the XHR request after opening the channel
-                    if (xhr.readyState === 1) {
-                        sendPingAfterOpen();
+            resolvePingURI().then(() => {
+                // do nothing on success because the new oePingService was found
+            }, () => {
+                // re-create the pingURI since we changed to the old classic AppServer ping URI
+                args.pingURI = this._makePingURI(); 
+            }).then(() => {
+                try {
+                    if (this._authProvider) {
+                        this._authProvider._openRequestAndAuthorize(
+                            xhr,
+                            'GET',
+                            args.pingURI,
+                            args.async,
+                            sendPingAfterOpen
+                        );
+                    } else {
+                        // get rid of this if we do away with synchronous support (i.e., customer use of
+                        // old Session API)
+                        this._setXHRCredentials(xhr, "GET", args.pingURI, this.userName, _password, args.async);
+    
+                        // Sending the XHR request after opening the channel
+                        if (xhr.readyState === 1) {
+                            sendPingAfterOpen();
+                        }
                     }
+                } catch (e) {
+                    args.error = e;
                 }
-            } catch (e) {
-                args.error = e;
-            }
-
-            args.xhr = xhr;
+            })
         };
 
         this._makePingURI = function () {
@@ -13637,7 +13851,15 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                 enumerable: true
             }
         );
-
+        Object.defineProperty(
+            progress.data.Session,
+            'AUTH_TYPE_BEARER',
+            {
+                value: "bearer",
+                enumerable: true
+            }
+        );
+        
         Object.defineProperty(
             progress.data.Session,
             'DEVICE_OFFLINE',
@@ -13692,6 +13914,7 @@ var progress = typeof progress === 'undefined' ? {} : progress;
         progress.data.Session.AUTH_TYPE_BASIC = "basic";
         progress.data.Session.AUTH_TYPE_FORM = "form";
         progress.data.Session.AUTH_TYPE_SSO = "sso";
+        progress.data.Session.AUTH_TYPE_BEARER = "bearer";
 
         /* deliberately not including the "offline reasons" that are defined in the
          * 1st part of the conditional. We believe that we can be used only in environments where
@@ -14515,34 +14738,36 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                                 var xhr = this,
                                     cbresult,
                                     info;
+                                try {
+                                    if (xhr.readyState === 4) {
+                                        info = {
+                                            xhr: xhr,
+                                            offlineReason: undefined,
+                                            fireEventIfOfflineChange: true,
+                                            usingOepingFormat: false
+                                        };
 
-                                if (xhr.readyState === 4) {
-                                    info = {
-                                        xhr: xhr,
-                                        offlineReason: undefined,
-                                        fireEventIfOfflineChange: true,
-                                        usingOepingFormat: false
-                                    };
+                                        // call _processPingResult because it has logic for
+                                        // detecting change in online/offline state
+                                        _pdsession._processPingResult(info);
 
-                                    // call _processPingResult because it has logic for
-                                    // detecting change in online/offline state
-                                    _pdsession._processPingResult(info);
-
-                                    if (xhr.status >= 200 && xhr.status < 300) {
-                                        deferred.resolve(
-                                            that,
-                                            progress.data.Session.SUCCESS,
-                                            info
-                                        );
-                                    } else {
-                                        if (xhr.status === 401) {
-                                            cbresult = progress.data.AuthenticationProvider._getAuthFailureReason(xhr);
+                                        if (xhr.status >= 200 && xhr.status < 300) {
+                                            deferred.resolve(
+                                                that,
+                                                progress.data.Session.SUCCESS,
+                                                info
+                                            );
                                         } else {
-                                            cbresult = progress.data.Session.GENERAL_FAILURE;
+                                            if (xhr.status === 401) {
+                                                cbresult = progress.data.AuthenticationProvider._getAuthFailureReason(xhr);
+                                            } else {
+                                                cbresult = progress.data.Session.GENERAL_FAILURE;
+                                            }
+                                            deferred.reject(that, cbresult, info);
                                         }
-                                        deferred.reject(that, cbresult, info);
                                     }
-                                }
+                                    } catch (e) {
+                                    }
                             };
 
                             try {
@@ -14781,8 +15006,8 @@ var progress = typeof progress === 'undefined' ? {} : progress;
     progress.data.getSession = function (options) {
         var deferred = new progress.util.Deferred(),
             authProvider,
-            promise,
-            authProviderInitObject = {};
+            authProviderInitObject = {},
+            session;
 
         // This is the reject handler for session-related operations
         // login, addCatalog, and logout
@@ -14810,26 +15035,23 @@ var progress = typeof progress === 'undefined' ? {} : progress;
         }
 
         function loginHandler(object) {
-            var jsdosession;
+            let jsdosession;
 
             try {
-                jsdosession = new progress.data.JSDOSession(options);
-                try {
-                    jsdosession.isAuthorized()
-                        .then(function() {
-                            return jsdosession.addCatalog(options.catalogURI);
-                        }, sessionRejectHandler)
-                        .then(function (object, result, info) {
-                            object = progress.util.Deferred.getParamObject(object, result, info);
-                            deferred.resolve(object.jsdosession, progress.data.Session.SUCCESS);
-                        }, sessionRejectHandler);
-                } catch (e) {
-                    sessionRejectHandler(
-                        jsdosession,
-                        progress.data.Session.GENERAL_FAILURE,
-                        {errorObject: e}
-                    );
+                if (typeof session === "undefined") {
+                    jsdosession = new progress.data.JSDOSession(options);
+                } else {
+                    jsdosession = session;
                 }
+
+                jsdosession.isAuthorized()
+                    .then(function() {
+                        return jsdosession.addCatalog(options.catalogURI);
+                    }, sessionRejectHandler)
+                    .then(function (object, result, info) {
+                        object = progress.util.Deferred.getParamObject(object, result, info);
+                        deferred.resolve(object.jsdosession, progress.data.Session.SUCCESS);
+                    }, sessionRejectHandler);
             } catch (ex) {
                 sessionRejectHandler(
                     jsdosession,
@@ -14955,7 +15177,33 @@ var progress = typeof progress === 'undefined' ? {} : progress;
             options.authProvider = authProvider;
 
             if (authProvider.hasClientCredentials()) {
-                loginHandler(authProvider);
+                // FAKE SESSION
+                let jsdosession = new progress.data.JSDOSession(options),
+                    statusCode = 0; 
+
+                 // This is a band-aid. We need to refactor and re-modularize
+                 // getSession() now that the team has a better understanding 
+                 // of async operations --aestrada
+                jsdosession.isAuthorized().then(() => {
+                    session = jsdosession;
+                    return; 
+                }, (obj) => {
+                    statusCode = obj && obj.info && obj.info.xhr && obj.info.xhr.status;
+                    return progress.util.Deferred.when([
+                        jsdosession.invalidate(),
+                        options.authProvider.logout()
+                    ]);
+                }).then(() => {
+                    // If we have a 401, then we need to get rid of our old authProvider and try a fresh start
+                    // Otherwise, we still good.
+                    if (statusCode === 401) {
+                        authProvider = new progress.data.AuthenticationProvider(authProviderInitObject);
+                        options.authProvider = authProvider;
+                        callLogin(authProvider);
+                    } else {
+                        loginHandler(authProvider);
+                    }
+                });
             } else {
                 // If model is anon, just log in.
                 if (authProvider.authenticationModel === progress.data.Session.AUTH_TYPE_ANON) {
@@ -15022,4 +15270,3 @@ var progress = typeof progress === 'undefined' ? {} : progress;
 if (typeof exports !== "undefined") {
     exports.progress = progress;
 }
-

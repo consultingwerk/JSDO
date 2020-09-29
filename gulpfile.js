@@ -55,6 +55,7 @@ gulp.task('concat jsdo', function () {
         'src/auth/progress.auth.basic.js',
         'src/auth/progress.auth.form.js',
         'src/auth/progress.auth.sso.js',
+        'src/auth/progress.auth.bearer.js',
         'src/progress.session.js',
     ]).pipe(concat('progress.jsdo.js'))
         .pipe(gulp.dest('lib/'));

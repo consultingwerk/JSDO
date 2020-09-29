@@ -75,6 +75,7 @@ export module progress {
             public static AUTH_TYPE_FORM: string;
             public static AUTH_TYPE_SSO: string;
             public static AUTH_TYPE_FORM_SSO: string;
+            public static AUTH_TYPE_BEARER: string;
         }
 
         /** 

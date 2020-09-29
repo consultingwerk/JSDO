@@ -12,6 +12,7 @@
   ],
   "scripts": {
     "build": "gulp 'build all'",
+    "build:jsdo": "gulp 'build jsdo'",
     "test": "npm run build:jsdo && mocha --recursive",
     "test:smokes": "npm run build:jsdo && mocha test/smoke*.js",
     "test:tc-smokes": "npm run build:jsdo && mocha test/smoke*.js --recursive --reporter mocha-teamcity-reporter",
@@ -59,5 +60,8 @@
     "mocha": "^5.2.0",
     "mocha-teamcity-reporter": "^2.4.0",
     "xmlhttprequest": "^1.8.0"
+  },
+  "resolutions": {
+    "graceful-fs": "4.2.3"
   }
 }
