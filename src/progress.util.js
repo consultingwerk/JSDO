@@ -74,14 +74,6 @@ var progress = typeof progress === 'undefined' ? {} : progress;
 
 
     if (isNodeJS) {
-        if (typeof localStorage === "undefined") {
-			localStorage = new LocalStorageEmulation();
-        }
-
-        if (typeof sessionStorage === "undefined") {
-            sessionStorage = new LocalStorageEmulation();
-        }
-
         // Polyfill the btoa() function (which we use to encode BASIC authorization)
         try {
             if (typeof btoa === "undefined") {
@@ -107,17 +99,14 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                 return btoaOriginal(unescape(encodeURIComponent(str)));
             };
         }
-        // Radu Nicoara, 03.04.2020
-        // Emulate session storage if not present
-    } else if (typeof sessionStorage === 'undefined') {
-            function LocalStorageEmulation() {
-                this._data = {};
-            };
-            LocalStorageEmulation.prototype.setItem = function(id, val) { return this._data[id] = String(val); },
-            LocalStorageEmulation.prototype.getItem = function(id) { return this._data.hasOwnProperty(id) ? this._data[id] : undefined; },
-            LocalStorageEmulation.prototype.removeItem = function(id) { return delete this._data[id]; },
-            LocalStorageEmulation.prototype.clear = function() { return this._data = {}; }
-            sessionStorage = new LocalStorageEmulation();
+    }
+    if (typeof localStorage === "undefined") {
+        localStorage = new LocalStorageEmulation();
+    }
+    // Radu Nicoara, 03.04.2020
+    // Emulate session storage if not present
+    if (typeof sessionStorage === 'undefined') {
+        sessionStorage = new LocalStorageEmulation();
     }
 }(progress));
 
