@@ -110,6 +110,8 @@ export module progress {
              */
             caseSensitive: boolean;
 
+            stopAfter: number;
+
             /**
              * Returns the name of the Data Object resource for which the current JSDO was created.
              */

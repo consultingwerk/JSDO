@@ -495,6 +495,14 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                                         deferred = new progress.util.Deferred();
                                         request.deferred = deferred;    
                                     }
+                                    if (jsdo && jsdo.stopAfter) {
+                                        if (url.indexOf('?') < 0) {
+                                            url = `${url}?stopAfter=${jsdo.stopAfter}`;
+                                        } else {
+                                            url = `${url}&stopAfter=${jsdo.stopAfter}`;
+                                        }
+                                    }
+                                    
 
                                     var data = jsdo._httpRequest(xhr, fn.definition.verb,
                                         url, reqBody, request, async);
