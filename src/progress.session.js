@@ -495,6 +495,8 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                                         deferred = new progress.util.Deferred();
                                         request.deferred = deferred;    
                                     }
+                                    // Oana Sucigan, 12.11.2021
+                                    // concatenated the stopAfter value to the URL
                                     if (jsdo && jsdo.stopAfter) {
                                         if (url.indexOf('?') < 0) {
                                             url = `${url}?stopAfter=${jsdo.stopAfter}`;
