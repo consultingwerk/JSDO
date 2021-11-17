@@ -111,6 +111,11 @@ export module progress {
             caseSensitive: boolean;
 
             /**
+             * A property on a JSDO that indicates the number of seconds after which the operation should stop.
+             */
+            stopAfter: number;
+
+            /**
              * Returns the name of the Data Object resource for which the current JSDO was created.
              */
             readonly name: string;
