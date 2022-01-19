@@ -3195,6 +3195,18 @@ var progress = typeof progress === 'undefined' ? {} : progress;
         // Alias for fill() method
         this.read = this.fill;
 
+        // Cancels the current GET request, if any is ongoing
+        this.cancelCurrentRequest = function cancelCurrentRequest() {
+            if (typeof this.clientRequestId === 'number') {
+                var xhr = new XMLHttpRequest();
+                var url = this.restURI || this.serviceURI;
+                url += '/Entities/RequestManager/cancelRequest/' + this.clientRequestId;
+                this._session._openRequest(xhr, 'GET', url, true);
+                this.currentXhr.cancelled = true;
+                return xhr.send(null);
+            }
+        }
+
         /*
          * Clears all data (including any pending changes) for each buffer in JSDO
          */
@@ -5725,6 +5737,7 @@ var progress = typeof progress === 'undefined' ? {} : progress;
         };
 
         this._fillComplete = function (jsdo, success, request) {
+            delete jsdo.clientRequestId;
             jsdo.trigger("afterFill", jsdo, request.success, request);
             if (request.deferred) {
                 if (success) {
@@ -5737,6 +5750,7 @@ var progress = typeof progress === 'undefined' ? {} : progress;
         };
 
         this._fillError = function (jsdo, success, request) {
+            delete jsdo.clientRequestId;
             jsdo._clearData();            
             jsdo._updateLastErrors(jsdo, null, null, request);
         };
