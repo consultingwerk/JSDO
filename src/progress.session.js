@@ -468,6 +468,15 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                                             }
                                         }
 
+                                        if (fn.definition.verb.toLowerCase() === 'get') {
+                                            objParam = objParam || {};
+                                            objParam.clientRequestId = Math.floor(Math.random() * 10000);
+                                            jsdo.clientRequestId = objParam.clientRequestId;
+                                            jsdo.currentXhr = request.xhr;
+                                            url += url.indexOf('?') < 0 ? '?' : '&';
+                                            url += 'clientRequestId={clientRequestId}';
+                                        }
+
                                         // URL has parameters
                                         if (url.indexOf('{') != -1) {
                                             var paramsFromURL = extractParamsFromURL(url);
@@ -505,7 +514,7 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                                         }
                                     }
                                     
-
+                                    
                                     var data = jsdo._httpRequest(xhr, fn.definition.verb,
                                         url, reqBody, request, async);
                                     return data;

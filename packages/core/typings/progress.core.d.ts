@@ -111,6 +111,19 @@ export module progress {
             caseSensitive: boolean;
 
             /**
+             * A property on a JSDO that indicates the number of seconds after which the operation should stop.
+             */
+            stopAfter: number;
+
+            /**
+             * The REST URI at which the application is deployed on the PASOE
+             *
+             * @type {string}
+             * @memberof JSDO
+             */
+            restURI?: string;
+
+            /**
              * Returns the name of the Data Object resource for which the current JSDO was created.
              */
             readonly name: string;
