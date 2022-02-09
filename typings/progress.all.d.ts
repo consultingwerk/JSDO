@@ -116,6 +116,14 @@ export module progress {
             stopAfter: number;
 
             /**
+             * If set to true, ongoing read operations can be cancelled by using the cancelCurrentRequest() method.
+             *
+             * @type {boolean}
+             * @memberof JSDO
+             */
+            readRequestsCancellable: boolean;
+
+            /**
              * The REST URI at which the application is deployed on the PASOE
              *
              * @type {string}
@@ -173,6 +181,14 @@ export module progress {
              */
             constructor(options: JSDOOptions);
 
+             /**
+             * If readRequestsCancellable is set to true, cancels the ongoing read operation, if any.
+             * Throws an error otherwise.
+             *
+             * @memberof JSDOSession
+             */
+            cancelCurrentRequest(): void;
+            
             /**
              * Asynchronously calls a custom invocation method on the JSDO to execute an Invoke operation defined by a Data Object resource.
              *

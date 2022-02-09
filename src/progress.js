@@ -3197,6 +3197,9 @@ var progress = typeof progress === 'undefined' ? {} : progress;
 
         // Cancels the current GET request, if any is ongoing
         this.cancelCurrentRequest = function cancelCurrentRequest() {
+            if (!this.readRequestsCancellable) {
+                throw new Error('Canceling read operations is disabled.');
+            }
             if (typeof this.clientRequestId === 'number') {
                 var xhr = new XMLHttpRequest();
                 var url = this.restURI || this.serviceURI;
