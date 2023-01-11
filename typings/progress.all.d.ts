@@ -467,6 +467,8 @@ export module progress {
             unsubscribe(eventName: string, operationName: string, callback: CRUDCallback, scope?: any): void;
 
             unsubscribeAll(eventName: string): void;
+
+            ValidateData(args?: { plcParameter: any }): JSDORequest;
         }
 
         export class JSTableRef implements IJSTableRef, IJSRecord, ISubscribe {
