@@ -4252,7 +4252,7 @@ var progress = typeof progress === 'undefined' ? {} : progress;
         // Cancels the current GET request, if any is ongoing
         this.cancelCurrentRequest = function cancelCurrentRequest() {
             if (!this.readRequestsCancellable) {
-                throw new Error('Cancelling read operations is disabled.');
+                throw new Error('Canceling read operations is disabled.');
             }
             if (typeof this.clientRequestId === 'number') {
                 var xhr = new XMLHttpRequest();
@@ -10575,6 +10575,9 @@ var progress = typeof progress === 'undefined' ? {} : progress;
 
                                 // Point fn to operations
                                 var func = function fn(object, async) {
+                                    if (fn.fnName === 'ValidateData') {
+                                        async = true;
+                                    }
                                     var deferred;
 
                                     // Add static variable fnName to function
@@ -10625,6 +10628,11 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                                         var isInvoke = (fn.definition.type.toUpperCase() == 'INVOKE');
                                         for (i = 0; i < fn.definition.params.length; i++) {
                                             name = fn.definition.params[i].name;
+                                            // Radu Nicoara 2023-01-11
+                                            // Do not process plcDataset parameter for invoke operations
+                                            if (isInvoke && fn.definition.params[i].type.includes('REQUEST_BODY') && this.isDataSet() && fn.definition.useBeforeImage && name === 'plcDataset') {
+                                                continue;
+                                            }
                                             switch (fn.definition.params[i].type) {
                                             case 'PATH':
                                             case 'QUERY':
@@ -10715,6 +10723,14 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                                                     encodeURIComponent(value));
                                             }
                                         }
+                                    }
+
+                                    // Radu Nicoara, 2023-01-11
+                                    // Process a change set to include a before image for the plcDataset parameter (if it exists);
+                                    const plcDatasetParam = fn.definition.params.find(p => p.name === 'plcDataset');
+                                    if (plcDatasetParam && plcDatasetParam.type && plcDatasetParam.type.includes('REQUEST_BODY') && fn.definition.useBeforeImage && this.isDataSet() && fn.definition.type === 'invoke') {
+                                        reqBody = reqBody || {};
+                                        reqBody.plcDataset = this._createChangeSet(this._dataSetName, false);
                                     }
 
                                     request.fnName = fn.fnName;
