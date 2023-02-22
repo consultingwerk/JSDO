@@ -5564,6 +5564,9 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                         if (recordId === null || recordId === '') {
                             throw new Error(msg.getMsgText("jsdoMSG035", "_mergeUpdateForSubmit()"));
                         }
+                        if (!recordId) {
+                            continue;
+                        }
 
                         // Determine if error string (get prods_id before _mergeUpdateRecord() is called, 
                         // since it removes all prods properties)
@@ -5616,8 +5619,11 @@ var progress = typeof progress === 'undefined' ? {} : progress;
 
                             if (beforeTableJsonObject[i]["prods:rowState"] == "deleted") {
                                 var recordId = beforeTableJsonObject[i]["prods:clientId"];
-                                if (!recordId) {
+                                if (recordId === null || recordId === '') {
                                     throw new Error(msg.getMsgText("jsdoMSG035", "_mergeUpdateForSubmit()"));
+                                }
+                                if (!recordId) {
+                                    continue;
                                 }
 
                                 errorString = undefined;
