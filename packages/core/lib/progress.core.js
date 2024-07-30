@@ -2732,6 +2732,20 @@ var progress = typeof progress === 'undefined' ? {} : progress;
 
             return hasNestedChild;
         };
+
+        /**
+         * Defines a getter for the primary field key names list
+         */
+        Object.defineProperty(
+            this,
+            'primaryKeys',
+            {
+                get: function() {
+                    return this._primaryKeys;
+                },
+                enumerable: true
+            }
+        );
     };
 
     /*
@@ -3138,7 +3152,18 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                 },
                 enumerable: true
             }
-        );		
+        );
+        
+        Object.defineProperty(
+            this,
+            'primaryKeys',
+            {
+                get: function() {
+                    return this.defaultTableRef.primaryKeys;
+                },
+                enumerable: true
+            }
+        );
         
         // Mike Fechner, Consultingwerk Ltd. 16.03.2016
         // Added a new property of the JSDO instance which will be
