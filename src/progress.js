@@ -1684,7 +1684,7 @@ var progress = typeof progress === 'undefined' ? {} : progress;
          */
         Object.defineProperty(
             this,
-            'primaryKeys',
+            'primaryKeyFields',
             {
                 get: function() {
                     return this._primaryKeys;
@@ -2102,10 +2102,10 @@ var progress = typeof progress === 'undefined' ? {} : progress;
         
         Object.defineProperty(
             this,
-            'primaryKeys',
+            'primaryKeyFields',
             {
                 get: function() {
-                    return this.defaultTableRef.primaryKeys;
+                    return this.defaultTableRef.primaryKeyFields;
                 },
                 enumerable: true
             }

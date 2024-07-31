@@ -96,7 +96,7 @@ export module progress {
             /**
              * A list of the primary table ref's primary key field names
              */
-            readonly primaryKeys: string[];
+            readonly primaryKeyFields: string[];
 
             /**
              * A boolean on a JSDO that indicates if the JSDO automatically accepts or rejects changes to JSDO memory when you call the saveChanges( ) method.
@@ -483,7 +483,7 @@ export module progress {
             /**
              * A list of the table ref's primary key field names
              */
-            readonly primaryKeys: string[];
+            readonly primaryKeyFields: string[];
 
             /**
              * Returns the table name for the specified table reference in the JSDO
@@ -1185,7 +1185,7 @@ export module progress {
             sort(sortFields: string[]): void;
             sort(funcRef: Function): void;
             getErrors(): any;
-            primaryKeys: string[];
+            primaryKeyFields: string[];
         }
 
         interface IJSRecord {
