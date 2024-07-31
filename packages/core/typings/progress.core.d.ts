@@ -94,6 +94,11 @@ export module progress {
             // _defaultTableRef: any;
 
             /**
+             * A list of the primary table ref's primary key field names
+             */
+            readonly primaryKeyFields: string[];
+
+            /**
              * A boolean on a JSDO that indicates if the JSDO automatically accepts or rejects changes to JSDO memory when you call the saveChanges( ) method.
              */
             autoApplyChanges: boolean;
@@ -474,6 +479,11 @@ export module progress {
         export class JSTableRef implements IJSTableRef, IJSRecord, ISubscribe {
 
             record: JSRecord;
+
+            /**
+             * A list of the table ref's primary key field names
+             */
+            readonly primaryKeyFields: string[];
 
             /**
              * Returns the table name for the specified table reference in the JSDO
@@ -1175,6 +1185,7 @@ export module progress {
             sort(sortFields: string[]): void;
             sort(funcRef: Function): void;
             getErrors(): any;
+            primaryKeyFields: string[];
         }
 
         interface IJSRecord {
