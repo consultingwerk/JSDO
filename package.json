@@ -11,7 +11,7 @@
     "typings/"
   ],
   "scripts": {
-    "build": "gulp 'build all'",
+    "build": "gulp \"build all\"",
     "build:jsdo": "gulp 'build jsdo'",
     "test": "npm run build:jsdo && mocha --recursive",
     "test:smokes": "npm run build:jsdo && mocha test/smoke*.js",
