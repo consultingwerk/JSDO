@@ -41,7 +41,6 @@ export module progress {
 
     interface GetSessionOptions {
         serviceURI: String, 
-        catalogURI: String, 
         authenticationModel: String, 
         username?: String, 
         password?: String, 

@@ -12023,6 +12023,10 @@ var progress = typeof progress === 'undefined' ? {} : progress;
             }
 
             var xhr = new XMLHttpRequest();
+            // Radu Nicoara, 2025-03-19:
+            // Include credentials for cross-site requests.
+            xhr.withCredentials = true;
+
             xhr.pdsession = this;
 
             try {
@@ -12187,6 +12191,9 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                 // that that function has more code to execute involving this xhr)
                 oldXHR = xhr;
                 xhr = new XMLHttpRequest();
+                // Radu Nicoara, 2025-03-19:
+                // Include credentials for cross-site requests.
+                xhr.withCredentials = true;
                 args.xhr = xhr;
                 params.xhr = xhr;
 
@@ -12388,6 +12395,9 @@ var progress = typeof progress === 'undefined' ? {} : progress;
             }
 
             xhr = new XMLHttpRequest();
+            // Radu Nicoara, 2025-03-19:
+            // Include credentials for cross-site requests.
+            xhr.withCredentials = true;
             xhr.pdsession = this;
             try {
                 /* logout when auth model is anonymous is a no-op on the server side
@@ -12734,6 +12744,9 @@ var progress = typeof progress === 'undefined' ? {} : progress;
             }
 
             xhr = new XMLHttpRequest();
+            // Radu Nicoara, 2025-03-19:
+            // Include credentials for cross-site requests.
+            xhr.withCredentials = true;
             xhr.pdsession = this;
             xhr._catalogURI = catalogURI;
 
@@ -13252,7 +13265,9 @@ var progress = typeof progress === 'undefined' ? {} : progress;
         var resolvePingURI = () => {
             var xhr = new XMLHttpRequest(),
                 deferred = new progress.util.Deferred();
-
+            // Radu Nicoara, 2025-03-19:
+            // Include credentials for cross-site requests.
+            xhr.withCredentials = true;
             xhr.onreadystatechange = () => {
                 if (xhr.readyState === 4) {
                     // If we can't find the new ping endpoint, we go back to the Classic Ping URI.
@@ -13286,6 +13301,9 @@ var progress = typeof progress === 'undefined' ? {} : progress;
         this._sendPing = function (args) {
             var xhr = new XMLHttpRequest(),
                 that = this;
+            // Radu Nicoara, 2025-03-19:
+            // Include credentials for cross-site requests.
+            xhr.withCredentials = true;
 
             args.xhr = xhr;
 
@@ -14791,13 +14809,17 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                 result,
                 that = this;
 
+            // Radu Nicoara, 2025-03-19:
+            // Include credentials for cross-site requests.
+            xhr.withCredentials = true;
+
             try {
                 if (this._isInvalidated) {
                 // JSDOSession: This session has been invalidated and cannot be used.
                     throw new Error(progress.data._getMsgText("jsdoMSG510", "JSDOSession"));
                 }
 
-                // If we logged in successfuly using login() or if we have an AuthProvider, make the call
+                // We need to have either logged in successfully or have an auth provider
                 if (this.loginResult === progress.data.Session.LOGIN_SUCCESS || this.authProvider) {
                     _pdsession._openRequest(
                         xhr,
@@ -14806,9 +14828,7 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                         true,
                         function () {
                             xhr.onreadystatechange = function () {
-                            // do we need this xhr var? The one declared in isAuthorized seems to be in scope
                                 var xhr = this,
-                                    cbresult,
                                     info;
                                 try {
                                     if (xhr.readyState === 4) {
@@ -14819,27 +14839,30 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                                             usingOepingFormat: false
                                         };
 
-                                        // call _processPingResult because it has logic for
-                                        // detecting change in online/offline state
+                                        // Process ping result for online/offline state
                                         _pdsession._processPingResult(info);
 
                                         if (xhr.status >= 200 && xhr.status < 300) {
+                                            // Successful response means we're authenticated
                                             deferred.resolve(
                                                 that,
                                                 progress.data.Session.SUCCESS,
                                                 info
                                             );
+                                        } else if (xhr.status === 401 || xhr.status === 403) {
+                                            // Explicitly handle authentication failures
+                                            deferred.reject(that, progress.data.Session.AUTHENTICATION_FAILURE, info);
                                         } else {
-                                            if (xhr.status === 401) {
-                                                cbresult = progress.data.AuthenticationProvider._getAuthFailureReason(xhr);
-                                            } else {
-                                                cbresult = progress.data.Session.GENERAL_FAILURE;
-                                            }
-                                            deferred.reject(that, cbresult, info);
+                                            // Other failures
+                                            deferred.reject(that, progress.data.Session.GENERAL_FAILURE, info);
                                         }
                                     }
-                                    } catch (e) {
-                                    }
+                                } catch (e) {
+                                    deferred.reject(that, progress.data.Session.GENERAL_FAILURE, {
+                                        xhr: xhr,
+                                        errorObject: e
+                                    });
+                                }
                             };
 
                             try {
@@ -14850,12 +14873,11 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                         }
                     );
                 } else {
-                // Never logged in (or logged in and logged out). Regardless of what the reason
-                // was that there wasn't a login, the bottom line is that authentication is required
+                    // Never logged in (or logged in and logged out). Regardless of what the reason
+                    // was that there wasn't a login, authentication is required.
                     result = progress.data.Session.LOGIN_AUTHENTICATION_REQUIRED;
                     deferred.reject(that, result, {xhr: xhr});
                 }
-
             } catch (error) {
                 if (progress.util.Deferred.useJQueryPromises) {
                     throw error;
@@ -14973,21 +14995,9 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                         options.authenticationModel
                     ));
                 }
+                // Radu Nicoara, 2025-03-19:
                 // Check if the provider exposes the required API.
-                if (typeof options.authProvider.hasClientCredentials === 'function') {
-                    if (!options.authProvider.hasClientCredentials()) {
-                        // JSDOSession: The AuthenticationProvider is not managing valid credentials.
-                        throw new Error(progress.data._getMsgText("jsdoMSG125", "JSDOSession"));
-                    }
-                } else {
-                    // JSDOSession: AuthenticationProvider objects must have a hasClientCredentials method.
-                    throw new Error(progress.data._getMsgText(
-                        "jsdoMSG505",
-                        "JSDOSession",
-                        "AuthenticationProvider",
-                        "hasClientCredentials"
-                    ));
-                }
+                // Removed check for hasClientCredentials() so that we rely on cookie-based authentication.
             } else if (options.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
                 // JSDOSession: If a JSDOSession object is using the SSO authentication model,
                 // the options object passed to its constructor must include an authProvider property.
@@ -15117,9 +15127,9 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                 }
 
                 jsdosession.isAuthorized()
-                    .then(function() {
-                        return jsdosession.addCatalog(options.catalogURI);
-                    }, sessionRejectHandler)
+                    // Radu Nicoara, 2025-03-19:
+                    // To facilitate using getSession() for the sole purpose of establishing a session, do not automatically add a catalog.
+                    // Instead, return the JSDOSession object so that the caller can manually add a catalog if needed.
                     .then(function (object, result, info) {
                         object = progress.util.Deferred.getParamObject(object, result, info);
                         deferred.resolve(object.jsdosession, progress.data.Session.SUCCESS);

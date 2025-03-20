@@ -1,6 +1,6 @@
 {
   "name": "@consultingwerk/smartcomponents-jsdo-core",
-  "version": "14.0.000",
+  "version": "18.1.0",
   "description": "JSDO Core Module",
   "main": "lib/progress.core.js",
   "files": [
