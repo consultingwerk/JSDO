@@ -627,8 +627,8 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                 gte: ">=",
                 lt: "<",
                 lte: "<=",
-                contains : "INDEX",
-                doesnotcontain: "INDEX",
+                contains : "MATCHES",
+                doesnotcontain: "NOT MATCHES",
                 endswith: "R-INDEX",
                 startswith: "BEGINS",
                 isnull: "ISNULL",
@@ -636,7 +636,6 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                 isempty: "ISEMPTY",
                 isnotempty: "ISNOTEMPTY"
             };
-        
         for (idx = 0, length = filters.length; idx < length; idx += 1) {
             filter = filters[idx];
             field = filter.field;
@@ -695,18 +694,22 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                     // Most where strings are in the format: field operator value. Ex. custnum < 100
                     // An exception to this is INDEX() and R-INDEX() which have format: operator field value
                     // Ex. R-INDEX(name, "LTD")
-                    if (operator === "INDEX" || operator === "R-INDEX") {
+                    if (operator === "MATCHES" || operator === "NOT MATCHES") {
                         if (type !== STRING_OBJECT_TYPE) {
                             throw new Error("Error parsing filter object. The operator " + filter.operator +
                                             " requires a string value");
                         }
-                        if (filter.operator === "doesnotcontain") {
-                            format = "{0}(" + "{2}, " + format + ") = 0";
-                        } else if (filter.operator === "contains") {
-                            format = "{0}(" + "{2}, " + format + ") > 0";
-                        } else { // else filter.operator = "endswith"
-                            format = "{2} MATCHES '*{1}'";
+                        if (filter.operator === "contains") {
+                            format = '{2} MATCHES "*{1}*"';
+                        } else if (filter.operator === "doesnotcontain") {
+                            format = 'NOT {2} MATCHES "*{1}*"';
                         }
+                    } else if (operator === "INDEX" || operator === "R-INDEX") {
+                        if (type !== STRING_OBJECT_TYPE) {
+                            throw new Error("Error parsing filter object. The operator " + filter.operator +
+                                            " requires a string value");
+                        }
+                        format = "{2} MATCHES '*{1}'";
                     } else {
                         format = "{2} {0} " + format;
                     }
