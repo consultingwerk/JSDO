@@ -1554,9 +1554,8 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                 );
             } else {
                 this._setXHRCredentials(xhr, verb, urlPlusCCID, this.userName, _password, async);
-                if (this.authenticationModel === progress.data.Session.AUTH_TYPE_FORM) {
-                    _addWithCredentialsAndAccept(xhr, "application/json");
-                }
+                // Ensure credentials (cookies) are sent with cross-origin requests for all auth types
+                _addWithCredentialsAndAccept(xhr, "application/json");
                 afterOpenAndAuthorize(xhr);
             }
 

@@ -183,6 +183,8 @@ var progress = typeof progress === 'undefined' ? {} : progress;
     progress.data.AuthenticationProvider.prototype._openLoginRequest = function (xhr, uri) {
         xhr.open('GET', uri, true);
         progress.data.Session._setNoCacheHeaders(xhr);
+        // Ensure credentials (cookies) are sent with cross-origin requests for login
+        xhr.withCredentials = true;
     };
 
     // HELPER FOR login METHOD, PROBABLY OVERRIDDEN IN MOST CONSTRUCTORS
@@ -258,6 +260,8 @@ var progress = typeof progress === 'undefined' ? {} : progress;
 
             // Check out why we do this in _loginProto
             xhr.setRequestHeader("Accept", "application/json");
+            // Ensure credentials (cookies) are sent with cross-origin requests
+            xhr.withCredentials = true;
             callback(xhr);
         } else {
             // AuthenticationProvider: The AuthenticationProvider is not managing valid credentials.
