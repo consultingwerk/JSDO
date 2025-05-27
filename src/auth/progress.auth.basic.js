@@ -121,6 +121,8 @@ limitations under the License.
                 }
 
                 progress.data.Session._setNoCacheHeaders(xhr);
+                // Ensure credentials (cookies) are sent with cross-origin requests
+                xhr.withCredentials = true;
                 callback(xhr);
             } else {
                 // AuthenticationProvider: The AuthenticationProvider is not managing valid credentials.
