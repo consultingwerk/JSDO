@@ -1,3 +1,5 @@
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/consultingwerk/JSDO)
+
 # JSDO
 
 The JSDO is a client side typescript library for Progress Data Object Services published by Progress Software Corporation. Its purpose is to provide an easy to understand API for querying, creating, updating and deleting Progress Data Objects as well as invoke server side business logic. 
