@@ -109,8 +109,8 @@ limitations under the License.
                 }
 
                 progress.data.Session._setNoCacheHeaders(xhr);
-                // Ensure credentials (cookies) are sent with cross-origin requests
-                xhr.withCredentials = true;
+                // Ensure credentials (cookies) are sent NOT sent when using bearer auth
+                xhr.withCredentials = false;
                 callback(xhr);
             } else {
                 // AuthenticationProvider: The AuthenticationProvider is not managing valid credentials.
