@@ -86,20 +86,6 @@ var progress = typeof progress === 'undefined' ? {} : progress;
         }
     }
 
-    // If we're running in the browser, edit btoa() to properly encode Unicode strings
-    // taken from https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/btoa#Unicode_strings
-    if (!isNodeJS) {
-        if (typeof btoa !== "undefined") {
-            let btoaOriginal = btoa;
-
-            // this section of code is functionally identical to the toString('base-64')
-            // btoa() doesn't exist on node though, which is why we have different styles
-            // of encoding in NS/node
-            btoa = function (str) {
-                return btoaOriginal(unescape(encodeURIComponent(str)));
-            };
-        }
-    }
     if (typeof localStorage === "undefined") {
         localStorage = new LocalStorageEmulation();
     }
