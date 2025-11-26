@@ -3281,7 +3281,11 @@ var progress = typeof progress === 'undefined' ? {} : progress;
         // from http://coderseye.com/2007/how-to-do-http-basic-auth-in-ajax.html
         function _make_basic_auth(user, pw) {
             var tok = user + ':' + pw;
-            var hash = btoa(tok);
+            var encodeBase64 =
+                progress.util && typeof progress.util.encodeUnicodeBase64 === "function"
+                    ? progress.util.encodeUnicodeBase64
+                    : btoa;
+            var hash = encodeBase64(tok);
             return "Basic " + hash;
         }
 

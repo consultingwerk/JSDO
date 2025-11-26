@@ -110,6 +110,16 @@ var progress = typeof progress === 'undefined' ? {} : progress;
 
     progress.util = {};
     
+    /**
+     * Encodes a string to Base64 while preserving Unicode characters.
+     * This mirrors the previous browser-level override of btoa() that existed in the JSDO,
+     * ensuring Basic auth helpers continue to support credentials such as Umlauts.
+     */
+    progress.util.encodeUnicodeBase64 = function encodeUnicodeBase64(value) {
+        var normalized = value == null ? "" : String(value);
+        return btoa(unescape(encodeURIComponent(normalized)));
+    };
+    
     var STRING_OBJECT_TYPE = "String",
         DATE_OBJECT_TYPE = "Date",
         CHARACTER_ABL_TYPE = "CHARACTER";

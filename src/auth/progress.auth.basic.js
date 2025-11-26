@@ -42,7 +42,12 @@ limitations under the License.
         // from http://coderseye.com/2007/how-to-do-http-basic-auth-in-ajax.html
         function make_basic_auth_header(user, pw) {
             var tok = user + ':' + pw,
-                hash = btoa(tok);
+                encodeBase64 =
+                    progress.util &&
+                    typeof progress.util.encodeUnicodeBase64 === "function"
+                        ? progress.util.encodeUnicodeBase64
+                        : btoa,
+                hash = encodeBase64(tok);
             return "Basic " + hash;
         }
 
