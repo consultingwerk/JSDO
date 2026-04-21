@@ -555,22 +555,26 @@ var progress = typeof progress === 'undefined' ? {} : progress;
 
             if (params && (params.sort || params.top)) {
                 if (params.sort) {
-                    // Converts sort option from Kendo UI to sort option used by the JSDO
-                    var sortFields = [];
-                    for (i = 0; i < params.sort.length; i += 1) {
-                        field = params.sort[i].field;
-                        if (params.sort[i].dir == "desc") {
-                            field += ":DESC";
-                        }
-                        sortFields.push(field);
-                    }                                                                             
-                    
-                    // Obtain sortObject from sort options to get compare functions
-                    var sortObject = this._processSortFields(sortFields);
-                    if (sortObject.sortFields && sortObject.sortFields.length > 0) {
-                        sortObject.tableRef = this;
-                        data.sort(this._getCompareFn(sortObject));
-                    }                
+                    // Only process sort locally if it's a SortDescriptor array
+                    // String sort expressions are backend-specific and cannot be processed locally
+                    if (typeof params.sort !== 'string') {
+                        // Converts sort option from Kendo UI to sort option used by the JSDO
+                        var sortFields = [];
+                        for (i = 0; i < params.sort.length; i += 1) {
+                            field = params.sort[i].field;
+                            if (params.sort[i].dir == "desc") {
+                                field += ":DESC";
+                            }
+                            sortFields.push(field);
+                        }                                                                             
+                        
+                        // Obtain sortObject from sort options to get compare functions
+                        var sortObject = this._processSortFields(sortFields);
+                        if (sortObject.sortFields && sortObject.sortFields.length > 0) {
+                            sortObject.tableRef = this;
+                            data.sort(this._getCompareFn(sortObject));
+                        }                
+                    }
                 }
 
                 if (params.top) {
@@ -7150,56 +7154,60 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                 }
 
                 if (params.sort) {
-                    // Convert sort expression to JFP format
-
-                    if (typeof(params.sort) === "object" && !(params.sort instanceof Array)) {
-                        // Kendo UI sort format - object
-                        // Make params.sort an array
-                        params.sort = (Object.keys( params.sort).length > 1) ? [params.sort] : [];  
-                    }
-                    sortFields = "";
-                    for (index = 0; index < params.sort.length; index += 1) {
-                        field = params.sort[index];
-                        sortDir = "";
+                    // If sort is specified as string, use it directly without conversion
+                    if (typeof params.sort === 'string') {
+                        sortFields = params.sort;
+                    } else {
+                        // Convert sort expression to JFP format
+                        if (typeof(params.sort) === "object" && !(params.sort instanceof Array)) {
+                            // Kendo UI sort format - object
+                            // Make params.sort an array
+                            params.sort = (Object.keys( params.sort).length > 1) ? [params.sort] : [];  
+                        }
+                        sortFields = "";
+                        for (index = 0; index < params.sort.length; index += 1) {
+                            field = params.sort[index];
+                            sortDir = "";
 						
-                        if (typeof(field) === "string") {
-                            // setSortFields format
-                            // Extract fieldName and sortDir from string
-                            fieldName = field;
-                            position = field.indexOf(":");
-                            if (position !== -1) {
-                                sortDir = fieldName.substring(position + 1);
-                                fieldName = fieldName.substring(0, position);
-                                switch(sortDir.toLowerCase()) {
-                                case "desc":
-                                case "descending":                                
-                                    sortDir = "desc";
-                                    break;
+                            if (typeof(field) === "string") {
+                                // setSortFields format
+                                // Extract fieldName and sortDir from string
+                                fieldName = field;
+                                position = field.indexOf(":");
+                                if (position !== -1) {
+                                    sortDir = fieldName.substring(position + 1);
+                                    fieldName = fieldName.substring(0, position);
+                                    switch(sortDir.toLowerCase()) {
+                                    case "desc":
+                                    case "descending":                                
+                                        sortDir = "desc";
+                                        break;
+                                    }
+                                }
+                            } else {
+                                // Kendo UI sort format - array
+                                // Extract fieldName and sortDir from object
+                                fieldName = field.field;
+                                if (params.sort[index].dir === "desc") {
+                                    sortDir = params.sort[index].dir;                                
                                 }
                             }
-                        } else {
-                            // Kendo UI sort format - array
-                            // Extract fieldName and sortDir from object
-                            fieldName = field.field;
-                            if (params.sort[index].dir === "desc") {
-                                sortDir = params.sort[index].dir;                                
+                            if (tableName) {
+                                // Use original fieldName instead of serialized name
+                                fieldInfo = jsdo[tableName]._fields[fieldName.toLowerCase()];
+                                if (fieldInfo && fieldInfo.origName) {
+                                    fieldName = fieldInfo.origName;
+                                }
                             }
-                        }
-                        if (tableName) {
-                            // Use original fieldName instead of serialized name
-                            fieldInfo = jsdo[tableName]._fields[fieldName.toLowerCase()];
-                            if (fieldInfo && fieldInfo.origName) {
-                                fieldName = fieldInfo.origName;
+                            if (sortDir === "desc") {
+                                fieldName += " DESC";
                             }
-                        }
-                        if (sortDir === "desc") {
-                            fieldName += " DESC";
-                        }
-                        sortFields += fieldName;
-                        if (index < params.sort.length - 1) {
-                            sortFields += ",";
-                        }                     
-                    }                                                                             
+                            sortFields += fieldName;
+                            if (index < params.sort.length - 1) {
+                                sortFields += ",";
+                            }                     
+                        }                                                                             
+                    }
                 }
                 // Check for empty object
                 if (typeof(params.filter) === "object" && !(params.filter instanceof Array)) {
