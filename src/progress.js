@@ -7092,6 +7092,40 @@ var progress = typeof progress === 'undefined' ? {} : progress;
     };
 
     // Built-in Plugins
+
+    /*
+     * Converts an ABL-style BY sort string to JFP orderBy format.
+     * E.g. "BY eOrder.CustNum DESCENDING BY eOrder.OrderDate" → "CustNum DESC,OrderDate"
+     *
+     * Rules:
+     *   - Each "BY <field> [DESCENDING]" segment becomes one comma-separated entry
+     *   - Table-qualified names (Table.Field) are stripped to just Field
+     *   - DESCENDING/descending → " DESC"; ASCENDING/ascending or absent → no suffix
+     *   - If no "BY" keyword is present the string is returned unchanged (already JFP)
+     */
+    var convertABLSortToOrderBy = function (ablSort) {
+        if (!ablSort || typeof ablSort !== 'string') {
+            return ablSort;
+        }
+        if (!/\bby\s+/i.test(ablSort)) {
+            return ablSort;
+        }
+        var tokens = ablSort.split(/\bby\s+/i).filter(function (t) { return t.trim() !== ''; });
+        var result = [];
+        for (var i = 0; i < tokens.length; i++) {
+            var parts = tokens[i].trim().split(/\s+/);
+            var fieldPart = parts[0];
+            var dirPart   = parts[1] ? parts[1].toUpperCase() : '';
+            var dotIndex  = fieldPart.lastIndexOf('.');
+            if (dotIndex !== -1) {
+                fieldPart = fieldPart.substring(dotIndex + 1);
+            }
+            var sortDir = (dirPart === 'DESCENDING' || dirPart === 'DESC') ? ' DESC' : '';
+            result.push(fieldPart + sortDir);
+        }
+        return result.join(',');
+    };
+
     progress.data.PluginManager.addPlugin("JFP", {
         requestMapping: function(jsdo, params, info) {
             var sortFields,
@@ -7156,7 +7190,7 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                 if (params.sort) {
                     // If sort is specified as string, use it directly without conversion
                     if (typeof params.sort === 'string') {
-                        sortFields = params.sort;
+                        sortFields = convertABLSortToOrderBy(params.sort);
                     } else {
                         // Convert sort expression to JFP format
                         if (typeof(params.sort) === "object" && !(params.sort instanceof Array)) {
