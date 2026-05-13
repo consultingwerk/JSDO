@@ -1,6 +1,6 @@
 {
   "name": "@consultingwerk/smartcomponents-jsdo",
-  "version": "19.1.000",
+  "version": "20.2.0",
   "description": "The JSDO is a JavaScript implementation of the CDO Specification published by Progress Software Corporation.\r The JSDO is a free and open-source full-featured implementation that can be used in web, mobile web and hybrid mobile apps.",
   "main": "lib/progress.all.min.js",
   "files": [
@@ -11,8 +11,10 @@
     "typings/"
   ],
   "scripts": {
-    "build": "gulp 'build all'",
-    "build:jsdo": "gulp 'build jsdo'",
+    "build": "gulp build all",
+    "build:jsdo": "gulp build jsdo",
+    "build:win": "gulp \"build all\"",
+    "build:jsdo:win": "gulp \"build jsdo\"",
     "test": "npm run build:jsdo && mocha --recursive",
     "test:smokes": "npm run build:jsdo && mocha test/smoke*.js",
     "test:tc-smokes": "npm run build:jsdo && mocha test/smoke*.js --recursive --reporter mocha-teamcity-reporter",
@@ -65,6 +67,6 @@
     "graceful-fs": "4.2.3"
   },
   "overrides": {
-      "graceful-fs": "4.2.11"
+    "graceful-fs": "4.2.11"
   }
 }
