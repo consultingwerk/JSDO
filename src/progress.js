@@ -214,6 +214,17 @@ var progress = typeof progress === 'undefined' ? {} : progress;
         this._processed = {};
         this._visited = false;
 
+        Object.defineProperty(
+            this,
+            "isRootTable",
+            {
+                get: function () {
+                    return !this._parent;
+                },
+                enumerable: true
+            }
+        );
+
         // record is used to represent the current record for a table reference
         this.record = null;
 
