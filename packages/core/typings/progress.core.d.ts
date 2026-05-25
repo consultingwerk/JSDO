@@ -485,6 +485,11 @@ export module progress {
             readonly primaryKeyFields: string[];
 
             /**
+             * Indicates whether the table reference is a root table in the JSDO catalog relationship graph.
+             */
+            readonly isRootTable: boolean;
+
+            /**
              * Returns the table name for the specified table reference in the JSDO
              */
             readonly name: string;
@@ -1185,6 +1190,7 @@ export module progress {
             sort(funcRef: Function): void;
             getErrors(): any;
             primaryKeyFields: string[];
+            readonly isRootTable?: boolean;
         }
 
         interface IJSRecord {
