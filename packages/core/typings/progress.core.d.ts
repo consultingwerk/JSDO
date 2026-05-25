@@ -1190,7 +1190,7 @@ export module progress {
             sort(funcRef: Function): void;
             getErrors(): any;
             primaryKeyFields: string[];
-            readonly isRootTable: boolean;
+            readonly isRootTable?: boolean;
         }
 
         interface IJSRecord {
