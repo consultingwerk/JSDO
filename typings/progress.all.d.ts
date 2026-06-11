@@ -4,7 +4,7 @@
  * Definitions by: egarcia, Traveleye, anikumar
  */
 
-export module progress {
+export namespace progress {
 
     export class data {
 
@@ -47,7 +47,7 @@ export module progress {
         name?: String
     }
 
-    export module data {
+    export namespace data {
 
         // Constants for progress.data.Session
         export class Session {
