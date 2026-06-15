@@ -481,9 +481,24 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                                             objParam.clientRequestId = Math.floor(Math.random() * 10000);
                                             jsdo.clientRequestId = objParam.clientRequestId;
                                             jsdo.currentXhr = request.xhr;
-                                            if (jsdo.readRequestsCancellable) {
-                                                jsdo._readGeneration = (jsdo._readGeneration || 0) + 1;
-                                                request.xhr._readGeneration = jsdo._readGeneration;
+                                            // SCLNG-1631: request.xhr only exists here for READ requests (fill()
+                                            // passes its xhr in). Invoke GETs build their xhr later in
+                                            // _httpRequest(), so request.xhr is undefined at this point - guard
+                                            // against it to avoid a TypeError when stamping a cancellable GET invoke.
+                                            if (jsdo.readRequestsCancellable && request.xhr) {
+                                                // SCLNG-1631: stamp the read with the CURRENT generation; do NOT
+                                                // increment it here. Only cancelCurrentRequest() advances the
+                                                // generation, so a read becomes stale solely because an explicit
+                                                // cancel happened after it started - not merely because a later,
+                                                // independent read (navigate-fetch, refresh, count) began on the
+                                                // same datasource.
+                                                request.xhr._readGeneration = jsdo._readGeneration || 0;
+                                                // SCLNG-1631: only READ requests are registered as cancellable on
+                                                // the backend; invoke GETs (e.g. the "count" issued after a paged
+                                                // read) are not. Record which kind this is so cancelCurrentRequest()
+                                                // only sends the backend cancelRequest for reads and does not fire a
+                                                // futile call (-> 400 InvalidClientRequestIdException) for an invoke.
+                                                request.xhr._isCancellableRead = !isInvoke;
                                             }
                                             url += url.indexOf('?') < 0 ? '?' : '&';
                                             url += 'clientRequestId={clientRequestId}';
