@@ -481,6 +481,10 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                                             objParam.clientRequestId = Math.floor(Math.random() * 10000);
                                             jsdo.clientRequestId = objParam.clientRequestId;
                                             jsdo.currentXhr = request.xhr;
+                                            if (jsdo.readRequestsCancellable) {
+                                                jsdo._readGeneration = (jsdo._readGeneration || 0) + 1;
+                                                request.xhr._readGeneration = jsdo._readGeneration;
+                                            }
                                             url += url.indexOf('?') < 0 ? '?' : '&';
                                             url += 'clientRequestId={clientRequestId}';
                                         }

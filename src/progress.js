@@ -3235,38 +3235,50 @@ var progress = typeof progress === 'undefined' ? {} : progress;
         // Alias for fill() method
         this.read = this.fill;
 
+        // SCLNG-1631: returns true when a read response must not merge or fire AfterFill.
+        this._isStaleReadRequest = function (xhr) {
+            if (!this.readRequestsCancellable || !xhr) {
+                return false;
+            }
+            if (xhr.cancelled) {
+                return true;
+            }
+            if (typeof xhr._readGeneration === 'number' &&
+                typeof this._readGeneration === 'number' &&
+                xhr._readGeneration !== this._readGeneration) {
+                return true;
+            }
+            return false;
+        };
+
         // Cancels the current GET request, if any is ongoing
         this.cancelCurrentRequest = function cancelCurrentRequest() {
             if (!this.readRequestsCancellable) {
                 throw new Error('Canceling read operations is disabled.');
             }
-            if (typeof this.clientRequestId === 'number') {
-                // SCLNG-1631: capture the id before aborting - aborting the read
-                // completes it synchronously, which clears this.clientRequestId.
-                var clientRequestId = this.clientRequestId;
+            var clientRequestId = this.clientRequestId;
+            var xhrToAbort = this.currentXhr;
 
-                // 1. Authoritative client-side cancel: abort the in-flight request.
-                // This stops the browser from waiting for the response, so a
-                // superseded request can never "land", regardless of whether the
-                // backend still has the request registered. The cancelled flag lets
-                // the completion handlers treat the resulting status 0 as an
-                // intentional cancel rather than an error.
-                if (this.currentXhr) {
-                    this.currentXhr.cancelled = true;
-                    try {
-                        this.currentXhr.abort();
-                    } catch (abortError) {
-                        console.error('JSDO cancelCurrentRequest: aborting the in-flight request failed: ' + abortError);
-                    }
+            if (typeof clientRequestId !== 'number' && !xhrToAbort) {
+                return;
+            }
+
+            // Invalidate any in-flight or late-arriving read tied to an older generation.
+            this._readGeneration = (this._readGeneration || 0) + 1;
+
+            // 1. Authoritative client-side cancel: abort the in-flight request.
+            if (xhrToAbort) {
+                xhrToAbort.cancelled = true;
+                try {
+                    xhrToAbort.abort();
+                } catch (abortError) {
+                    console.error('JSDO cancelCurrentRequest: aborting the in-flight request failed: ' + abortError);
                 }
+            }
 
-                // 2. Best-effort backend cancel: ask the server to terminate the
-                // (possibly still running) request so the PASOE agent is freed.
-                // This can legitimately fail with 400 InvalidClientRequestIdException
-                // when the request has already completed on the server (e.g. the
-                // response was merely slow to stream back over a throttled link), so
-                // its failure is swallowed - logged via console.error for visibility
-                // but never surfaced as an application error.
+            // 2. Best-effort backend cancel: ask the server to terminate the
+            // (possibly still running) request so the PASOE agent is freed.
+            if (typeof clientRequestId === 'number') {
                 var xhr = new XMLHttpRequest();
                 var url = this.restURI || this.serviceURI;
                 url += '/Entities/RequestManager/cancelRequest/' + clientRequestId;
@@ -3279,8 +3291,11 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                             xhr.responseText);
                     }
                 };
-                return xhr.send(null);
+                xhr.send(null);
             }
+
+            delete this.clientRequestId;
+            this.currentXhr = undefined;
         }
 
         /*
@@ -5787,6 +5802,10 @@ var progress = typeof progress === 'undefined' ? {} : progress;
             var xhr = request.xhr,
                 properties,
                 mapping;
+
+            if (jsdo._isStaleReadRequest(xhr)) {
+                return;
+            }
             
             // Need to check if responseMapping was specified; developer can specify
             // plug-in to manipulate response 
@@ -5819,7 +5838,19 @@ var progress = typeof progress === 'undefined' ? {} : progress;
         };
 
         this._fillComplete = function (jsdo, success, request) {
-            delete jsdo.clientRequestId;
+            var xhr = request.xhr;
+
+            if (jsdo._isStaleReadRequest(xhr)) {
+                if (xhr) {
+                    xhr.cancelled = true;
+                }
+                request.success = false;
+                jsdo.trigger("afterFill", jsdo, false, request);
+                if (request.deferred) {
+                    request.deferred.reject(jsdo, false, request);
+                }
+                return;
+            }
             jsdo.trigger("afterFill", jsdo, request.success, request);
             if (request.deferred) {
                 if (success) {
@@ -5832,7 +5863,9 @@ var progress = typeof progress === 'undefined' ? {} : progress;
         };
 
         this._fillError = function (jsdo, success, request) {
-            delete jsdo.clientRequestId;
+            if (jsdo._isStaleReadRequest(request.xhr)) {
+                return;
+            }
             jsdo._clearData();            
             jsdo._updateLastErrors(jsdo, null, null, request);
         };
