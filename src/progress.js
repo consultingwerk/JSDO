@@ -3241,11 +3241,44 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                 throw new Error('Canceling read operations is disabled.');
             }
             if (typeof this.clientRequestId === 'number') {
+                // SCLNG-1631: capture the id before aborting - aborting the read
+                // completes it synchronously, which clears this.clientRequestId.
+                var clientRequestId = this.clientRequestId;
+
+                // 1. Authoritative client-side cancel: abort the in-flight request.
+                // This stops the browser from waiting for the response, so a
+                // superseded request can never "land", regardless of whether the
+                // backend still has the request registered. The cancelled flag lets
+                // the completion handlers treat the resulting status 0 as an
+                // intentional cancel rather than an error.
+                if (this.currentXhr) {
+                    this.currentXhr.cancelled = true;
+                    try {
+                        this.currentXhr.abort();
+                    } catch (abortError) {
+                        console.error('JSDO cancelCurrentRequest: aborting the in-flight request failed: ' + abortError);
+                    }
+                }
+
+                // 2. Best-effort backend cancel: ask the server to terminate the
+                // (possibly still running) request so the PASOE agent is freed.
+                // This can legitimately fail with 400 InvalidClientRequestIdException
+                // when the request has already completed on the server (e.g. the
+                // response was merely slow to stream back over a throttled link), so
+                // its failure is swallowed - logged via console.error for visibility
+                // but never surfaced as an application error.
                 var xhr = new XMLHttpRequest();
                 var url = this.restURI || this.serviceURI;
-                url += '/Entities/RequestManager/cancelRequest/' + this.clientRequestId;
+                url += '/Entities/RequestManager/cancelRequest/' + clientRequestId;
                 this._session._openRequest(xhr, 'GET', url, true);
-                this.currentXhr.cancelled = true;
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === 4 && (xhr.status < 200 || xhr.status >= 300)) {
+                        console.error('JSDO cancelCurrentRequest: backend cancellation of clientRequestId ' +
+                            clientRequestId + ' returned HTTP ' + xhr.status +
+                            ' (the request had likely already completed on the server). Response: ' +
+                            xhr.responseText);
+                    }
+                };
                 return xhr.send(null);
             }
         }
@@ -6511,6 +6544,17 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                             xhr.onErrorFn(xhr.jsdo, request.success, request);
                         }
                     } 
+                    // Radu Nicoara, SCLNG-1631
+                    // Clear the cancellable-request bookkeeping once the request that owns it
+                    // has completed. Otherwise a later cancelCurrentRequest() call would target
+                    // an already finished request id, which the backend rejects with an
+                    // InvalidClientRequestIdException. The currentXhr guard ensures we never
+                    // clear state that a newer in-flight request has already taken over - e.g.
+                    // the "count" issued right after a paged read, which must stay cancellable.
+                    if (xhr === xhr.jsdo.currentXhr) {
+                        delete xhr.jsdo.clientRequestId;
+                        xhr.jsdo.currentXhr = undefined;
+                    }
                 }
         };
 
