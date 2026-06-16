@@ -2571,11 +2571,30 @@ var progress = typeof progress === 'undefined' ? {} : progress;
 
         /* handler for invoke operation complete */
         this._invokeComplete = function (jsdo, success, request) {
+            // SCLNG-1631: a superseded/cancelled cancellable GET invoke must not be delivered as
+            // a fresh result. Mark it cancelled and report it as unsuccessful so afterInvoke
+            // subscribers and the deferred consumer discard it - without raising a spurious
+            // rejection (matching the resolve-not-reject handling used for cancelled reads). This
+            // keeps read-generation cancellation consistent for standalone JSDO consumers that use
+            // GET invoke operations, not just for SCLNG fill()/read().
+            if (jsdo._isStaleReadRequest(request.xhr)) {
+                if (request.xhr) {
+                    request.xhr.cancelled = true;
+                }
+                if (request.async && request.fnName) {
+                    jsdo.trigger('afterInvoke', request.fnName, jsdo, false, request);
+                }
+                if (request.deferred) {
+                    request.deferred.resolve(jsdo, false, request);
+                }
+                return;
+            }
+
             // only fire on async requests
             if (request.async && request.fnName) {
                 jsdo.trigger('afterInvoke', request.fnName, jsdo, success, request);
             }
-            
+
             if (request.deferred) {
                 if (success) {
                     request.deferred.resolve(jsdo, success, request);
@@ -3214,6 +3233,15 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                     if ((typeof xhr.onCompleteFn) == 'function') {
                         xhr.onCompleteFn(xhr.jsdo, request.success, request);
                     }
+
+                    // SCLNG-1631: this synchronous failure path bypasses
+                    // onReadyStateChangeGeneric, so clear the cancellable-request bookkeeping
+                    // here too (identity-guarded), otherwise a stale clientRequestId/currentXhr
+                    // would trigger a futile backend cancel after the read has already failed.
+                    if (xhr === xhr.jsdo.currentXhr) {
+                        delete xhr.jsdo.clientRequestId;
+                        xhr.jsdo.currentXhr = undefined;
+                    }
                 }
             } catch (error) {
                 if (progress.util.Deferred.useJQueryPromises) {
@@ -3235,19 +3263,69 @@ var progress = typeof progress === 'undefined' ? {} : progress;
         // Alias for fill() method
         this.read = this.fill;
 
+        // SCLNG-1631: returns true when a read response must not merge or fire AfterFill.
+        this._isStaleReadRequest = function (xhr) {
+            if (!this.readRequestsCancellable || !xhr) {
+                return false;
+            }
+            if (xhr.cancelled) {
+                return true;
+            }
+            if (typeof xhr._readGeneration === 'number' &&
+                typeof this._readGeneration === 'number' &&
+                xhr._readGeneration !== this._readGeneration) {
+                return true;
+            }
+            return false;
+        };
+
         // Cancels the current GET request, if any is ongoing
         this.cancelCurrentRequest = function cancelCurrentRequest() {
             if (!this.readRequestsCancellable) {
                 throw new Error('Canceling read operations is disabled.');
             }
-            if (typeof this.clientRequestId === 'number') {
+            var clientRequestId = this.clientRequestId;
+            var xhrToAbort = this.currentXhr;
+
+            if (typeof clientRequestId !== 'number' && !xhrToAbort) {
+                return;
+            }
+
+            // Invalidate any in-flight or late-arriving read tied to an older generation.
+            this._readGeneration = (this._readGeneration || 0) + 1;
+
+            // 1. Authoritative client-side cancel: abort the in-flight request.
+            if (xhrToAbort) {
+                xhrToAbort.cancelled = true;
+                try {
+                    xhrToAbort.abort();
+                } catch (abortError) {
+                    console.error('JSDO cancelCurrentRequest: aborting the in-flight request failed: ' + abortError);
+                }
+            }
+
+            // 2. Best-effort backend cancel: ask the server to terminate the
+            // (possibly still running) request so the PASOE agent is freed. Only READ
+            // requests are registered server-side, so skip this for invoke GETs (e.g. the
+            // trailing "count") - the client-side abort above already cancels them, and a
+            // backend cancel for an unregistered id would just 400 (SCLNG-1631).
+            if (typeof clientRequestId === 'number' && xhrToAbort && xhrToAbort._isCancellableRead) {
                 var xhr = new XMLHttpRequest();
                 var url = this.restURI || this.serviceURI;
-                url += '/Entities/RequestManager/cancelRequest/' + this.clientRequestId;
+                url += '/Entities/RequestManager/cancelRequest/' + clientRequestId;
                 this._session._openRequest(xhr, 'GET', url, true);
-                this.currentXhr.cancelled = true;
-                return xhr.send(null);
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === 4 && (xhr.status < 200 || xhr.status >= 300)) {
+                        console.warn('JSDO cancelCurrentRequest: backend cancelRequest for clientRequestId ' +
+                            clientRequestId + ' returned HTTP ' + xhr.status +
+                            ' (the request had likely already completed on the server).');
+                    }
+                };
+                xhr.send(null);
             }
+
+            delete this.clientRequestId;
+            this.currentXhr = undefined;
         }
 
         /*
@@ -5754,6 +5832,10 @@ var progress = typeof progress === 'undefined' ? {} : progress;
             var xhr = request.xhr,
                 properties,
                 mapping;
+
+            if (jsdo._isStaleReadRequest(xhr)) {
+                return;
+            }
             
             // Need to check if responseMapping was specified; developer can specify
             // plug-in to manipulate response 
@@ -5786,7 +5868,23 @@ var progress = typeof progress === 'undefined' ? {} : progress;
         };
 
         this._fillComplete = function (jsdo, success, request) {
-            delete jsdo.clientRequestId;
+            var xhr = request.xhr;
+
+            if (jsdo._isStaleReadRequest(xhr)) {
+                if (xhr) {
+                    xhr.cancelled = true;
+                }
+                request.success = false;
+                jsdo.trigger("afterFill", jsdo, false, request);
+                if (request.deferred) {
+                    // SCLNG-1631: resolve (unsuccessful) rather than reject, so a standalone
+                    // jsdo.fill().then(...) without a .catch does not raise an unhandled
+                    // rejection on a cancelled/superseded read. Consistent with _invokeComplete;
+                    // afterFill already fired with success=false so consumers can discard it.
+                    request.deferred.resolve(jsdo, false, request);
+                }
+                return;
+            }
             jsdo.trigger("afterFill", jsdo, request.success, request);
             if (request.deferred) {
                 if (success) {
@@ -5799,7 +5897,9 @@ var progress = typeof progress === 'undefined' ? {} : progress;
         };
 
         this._fillError = function (jsdo, success, request) {
-            delete jsdo.clientRequestId;
+            if (jsdo._isStaleReadRequest(request.xhr)) {
+                return;
+            }
             jsdo._clearData();            
             jsdo._updateLastErrors(jsdo, null, null, request);
         };
@@ -6511,6 +6611,18 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                             xhr.onErrorFn(xhr.jsdo, request.success, request);
                         }
                     } 
+                    // Radu Nicoara, SCLNG-1631
+                    // Clear the cancellable-request bookkeeping once the request that owns it
+                    // has completed, so a later cancelCurrentRequest() cannot target an already
+                    // finished request id (which the backend rejects with an
+                    // InvalidClientRequestIdException). The currentXhr identity guard ensures we
+                    // only clear when THIS xhr is still the current one; if a newer request has
+                    // already taken over currentXhr (e.g. a follow-up issued from this request's
+                    // own completion handler), its bookkeeping is left intact.
+                    if (xhr === xhr.jsdo.currentXhr) {
+                        delete xhr.jsdo.clientRequestId;
+                        xhr.jsdo.currentXhr = undefined;
+                    }
                 }
         };
 
