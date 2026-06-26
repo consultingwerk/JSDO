@@ -475,6 +475,14 @@ export namespace progress {
             ValidateData(args?: { plcParameter: any }): JSDORequest;
         }
 
+        /**
+         * A parent/child data-relation field pair, as defined in the JSDO catalog.
+         */
+        interface JSRelationField {
+            parentFieldName: string;
+            childFieldName: string;
+        }
+
         export class JSTableRef implements IJSTableRef, IJSRecord, ISubscribe {
 
             record: JSRecord;
@@ -488,6 +496,18 @@ export namespace progress {
              * Indicates whether the table reference is a root table in the JSDO catalog relationship graph.
              */
             readonly isRootTable: boolean;
+
+            /**
+             * The name of this table reference's parent table in the JSDO catalog
+             * relationship graph, or null when this is a root table.
+             */
+            readonly parentName: string | null;
+
+            /**
+             * The parent/child data-relation field pairs relating this table reference
+             * to its parent table in the JSDO catalog. Empty for root tables.
+             */
+            readonly relationFields: JSRelationField[];
 
             /**
              * Returns the table name for the specified table reference in the JSDO
@@ -1191,6 +1211,8 @@ export namespace progress {
             getErrors(): any;
             primaryKeyFields: string[];
             readonly isRootTable?: boolean;
+            readonly parentName?: string | null;
+            readonly relationFields?: JSRelationField[];
         }
 
         interface IJSRecord {
