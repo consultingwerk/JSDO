@@ -225,6 +225,31 @@ var progress = typeof progress === 'undefined' ? {} : progress;
             }
         );
 
+        Object.defineProperty(
+            this,
+            "parentName",
+            {
+                get: function () {
+                    return this._parent || null;
+                },
+                enumerable: true
+            }
+        );
+
+        Object.defineProperty(
+            this,
+            "relationFields",
+            {
+                get: function () {
+                    // _relationship holds the parent/child data-relation field pairs
+                    // ({ parentFieldName, childFieldName }); it is only populated on
+                    // child buffers, so root/parent tables return an empty array.
+                    return this._relationship ? this._relationship.slice() : [];
+                },
+                enumerable: true
+            }
+        );
+
         // record is used to represent the current record for a table reference
         this.record = null;
 
