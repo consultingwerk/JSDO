@@ -10,3 +10,13 @@ build/
 packages/ng-datasource/package-lock.json
 
 **/tsFiles
+
+# Build output of gulpfile.js, produced by the build and never committed
+/lib/
+/packages/*/lib/
+/packages/core/typings/progress.core.d.ts
+/packages/angular/typings/
+/packages/nativescript/typings/
+/packages/node/typings/
+/packages/ng-datasource/src/progress.data.ng.ds.js
+/packages/ng-datasource/src/progress.data.ng.ds.d.ts
