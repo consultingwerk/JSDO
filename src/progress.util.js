@@ -1025,10 +1025,11 @@ var progress = typeof progress === 'undefined' ? {} : progress;
             } else if (match === "FFF") {
                 result = String(date.getTime());
             } else if (match === "zzz") {
-                // timezone is returned in minutes
-                minutes = date.getTimezoneOffset();
+                // timezone offset in minutes east of UTC with a single sign, eg. +180 for UTC+3.
+                // getTimezoneOffset() counts minutes west of UTC, so it is negated
+                minutes = -date.getTimezoneOffset();
                 sign = minutes < 0;
-                result = (sign ? "+" : "-") + minutes;
+                result = (sign ? "-" : "+") + Math.abs(minutes);
             } else if (match === "iso") {
                 result = date.toISOString();
             }
