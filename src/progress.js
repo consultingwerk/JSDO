@@ -7435,11 +7435,16 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                 // the Filter Parameter so that the backend can use this
                 // information to actually know which Business Entity Table
                 // the query filter string is intended for ...
+                // Consultingwerk Ltd. 30.10.2026 (SCLNG-1892)
+                // viewTableFilters (an ABL expression per entry of viewTables,
+                // SCL-6162) is passed through as it is; JSON.stringify leaves
+                // it out when it is not set.
 
                 filter = JSON.stringify({
                     ablFilter: ablFilter,
 					tableRef: params.tableRef, 
 					viewTables: jsdo.viewTables, 
+					viewTableFilters: params.viewTableFilters,
                     sqlQuery: sqlQuery,
                     orderBy: sortFields,
                     skip: params.skip,
