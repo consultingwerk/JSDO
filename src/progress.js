@@ -7435,10 +7435,12 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                 // the Filter Parameter so that the backend can use this
                 // information to actually know which Business Entity Table
                 // the query filter string is intended for ...
-                // Consultingwerk Ltd. 30.10.2026 (SCLNG-1892)
+                // Consultingwerk Ltd. 30.10.2026 (SCLNG-1892, SCLNG-1898)
                 // viewTableFilters (an ABL expression per entry of viewTables,
-                // SCL-6162) is passed through as it is; JSON.stringify leaves
-                // it out when it is not set.
+                // SCL-6162), customContext (the CustomContext of the request)
+                // and NamedQuery (the named query of the read) are passed
+                // through as they are; JSON.stringify leaves them out when they
+                // are not set.
 
                 filter = JSON.stringify({
                     ablFilter: ablFilter,
@@ -7449,7 +7451,9 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                     orderBy: sortFields,
                     skip: params.skip,
                     top: params.top,
-                    id: params.id
+                    id: params.id,
+                    customContext: params.customContext,
+                    NamedQuery: params.NamedQuery
                 });
 				
                 params = {filter: filter};
