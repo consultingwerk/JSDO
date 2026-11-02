@@ -5545,21 +5545,22 @@ var progress = typeof progress === 'undefined' ? {} : progress;
         // Private method to merge a row that the server created or changed while it saved the
         // changes, although the client did not send it (SCLNG-1902): a row with prods:rowState
         // "created" or "modified" and no prods:clientId. As ABL MERGE-CHANGES (..., true) does,
-        // it updates the record with the same primary key, or is added when there is none, here
-        // without change tracking, so the next save does not send it again. A record the server
-        // deleted without the client having sent it stays, as with MERGE-CHANGES. Each merged
-        // record is collected on the request in serverMergedRecords as { jsrecord, rowState },
-        // rowState being the row's prods:rowState.
+        // the row updates the record with the same key, or is added when there is none, here
+        // without change tracking, so the next save does not send it again. Keys are compared as
+        // the JSDO's own merge compares them (primary keys, else the idProperty). A record the
+        // server deleted without the client having sent it stays, as with MERGE-CHANGES. Each
+        // merged record is collected on the request in serverMergedRecords as
+        // { jsrecord, rowState }, rowState being the row's prods:rowState.
         //
         // It returns true when the row was such a row, false otherwise.
         this._mergeServerRecord = function (tableRef, rowJsonObject, request) {
             var values = {},
                 keyFields = tableRef._primaryKeys,
+                oldUseRelationships,
                 existing,
                 jsrecord,
                 record,
-                i,
-                j;
+                i;
 
             if (rowJsonObject["prods:clientId"]
                 || (rowJsonObject["prods:rowState"] !== "created"
@@ -5570,14 +5571,15 @@ var progress = typeof progress === 'undefined' ? {} : progress;
             this._copyRecord(tableRef, rowJsonObject, values);
             this._deleteProdsProperties(values, true);
 
+            if ((!keyFields || keyFields.length === 0) && this._resource.idProperty) {
+                keyFields = [this._resource.idProperty];
+            }
             if (keyFields && keyFields.length > 0) {
                 for (i = 0; i < tableRef._data.length && !existing; i++) {
                     record = tableRef._data[i];
-                    if (!record) continue;
-                    for (j = 0; j < keyFields.length; j++) {
-                        if (record[keyFields[j]] !== values[keyFields[j]]) break;
+                    if (record && tableRef._equalRecord(record, values, keyFields)) {
+                        existing = record;
                     }
-                    if (j === keyFields.length) existing = record;
                 }
             }
 
@@ -5586,7 +5588,15 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                 jsrecord = new progress.data.JSRecord(tableRef, existing);
             }
             else {
-                jsrecord = tableRef._add(values, false, false);
+                // The row brings its own key values; a parent buffer of a submit may have
+                // no working record to take them from
+                oldUseRelationships = this.useRelationships;
+                this.useRelationships = false;
+                try {
+                    jsrecord = tableRef._add(values, false, false);
+                } finally {
+                    this.useRelationships = oldUseRelationships;
+                }
             }
 
             if (!request.serverMergedRecords) {
@@ -5598,6 +5608,50 @@ var progress = typeof progress === 'undefined' ? {} : progress;
             });
 
             return true;
+        };
+
+        /////////////////////////////////////////////////////////////////////////////////////////////
+        //
+        // Private method to determine whether a response reports an error or a rejection for any
+        // row, in the after tables or in the before-image data (SCLNG-1902). Rows the server
+        // created or changed are not merged then, since the save may not have kept them.
+        this._hasRejectedRows = function (dataSetJsonObject) {
+            var tableObjects = [dataSetJsonObject, dataSetJsonObject && dataSetJsonObject["prods:before"]],
+                rows,
+                name,
+                t,
+                i;
+
+            for (t = 0; t < tableObjects.length; t++) {
+                if (!tableObjects[t]) continue;
+                for (name in tableObjects[t]) {
+                    rows = tableObjects[t][name];
+                    if (!(rows instanceof Array)) continue;
+                    for (i = 0; i < rows.length; i++) {
+                        if (rows[i] && (rows[i]["prods:hasErrors"] || rows[i]["prods:rejected"])) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        };
+
+        /////////////////////////////////////////////////////////////////////////////////////////////
+        //
+        // Private method to return the rows of a per-record (CUD) response that carry the client's
+        // id, when any does (SCLNG-1902). The other rows are rows the server created or changed.
+        // When no row carries it, all rows are returned, as the merge took them before.
+        this._clientRows = function (rows) {
+            var clientRows;
+
+            if (!(rows instanceof Array)) {
+                return rows;
+            }
+            clientRows = rows.filter(function (row) {
+                return !!row["prods:clientId"];
+            });
+            return clientRows.length > 0 ? clientRows : rows;
         };
 
         /////////////////////////////////////////////////////////////////////////////////////////////
@@ -5621,11 +5675,15 @@ var progress = typeof progress === 'undefined' ? {} : progress;
 
                 if (tableJsonObject instanceof Array) {
                     // Rows the server created or changed during the save come back next to
-                    // the specified record: merge them, and the specified record (SCLNG-1902)
-                    var jsdo = this;
-                    tableJsonObject = tableJsonObject.filter(function (rowJsonObject) {
-                        return !jsdo._mergeServerRecord(tableRef, rowJsonObject, xhr.request);
-                    });
+                    // the specified record, which carries the client's id: merge them, so only
+                    // the specified record is left for the merge below (SCLNG-1902)
+                    var clientRows = this._clientRows(tableJsonObject);
+                    if (clientRows !== tableJsonObject && !this._hasRejectedRows(dataSetJsonObject)) {
+                        for (var s = 0; s < tableJsonObject.length; s++) {
+                            this._mergeServerRecord(tableRef, tableJsonObject[s], xhr.request);
+                        }
+                    }
+                    tableJsonObject = clientRows;
 
                     if (tableJsonObject.length > 1) {
                         xhr.request.success = false;
@@ -5712,7 +5770,9 @@ var progress = typeof progress === 'undefined' ? {} : progress;
             // if there are any errors on deletes records.
             // delete records are not in after table, only in before table
             if (beforeJsonObject) {
-                var beforeTableJsonObject = beforeJsonObject[tableRef._name];
+                // Before-images of rows the server changed during the delete are not the
+                // deleted record's (SCLNG-1902)
+                var beforeTableJsonObject = this._clientRows(beforeJsonObject[tableRef._name]);
 
                 if (beforeTableJsonObject.length > 1) {
                     xhr.request.success = false;
@@ -5762,6 +5822,7 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                 dataSetJsonObject = dataSetJsonObject[this._dataSetName];
 
             var beforeJsonObject = dataSetJsonObject["prods:before"];
+            var mergesServerRecords = !this._hasRejectedRows(dataSetJsonObject);
 
             for (var buf in this._buffers) {
                 var tableRef = this._buffers[buf];
@@ -5776,7 +5837,9 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                         }
                         if (!recordId) {
                             // A row the server created or changed during the save (SCLNG-1902)
-                            this._mergeServerRecord(tableRef, tableJsonObject[i], xhr.request);
+                            if (mergesServerRecords) {
+                                this._mergeServerRecord(tableRef, tableJsonObject[i], xhr.request);
+                            }
                             continue;
                         }
 
@@ -6095,7 +6158,19 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                 beforeJsonObject = dataSetJsonObject["prods:before"];
 
                 if (beforeJsonObject) {
-                    data = beforeJsonObject[request.jsrecord._tableRef._name];
+                    // Rows the server changed during the delete bring before-images of their
+                    // own; the deleted record's carries the client's id (SCLNG-1902)
+                    data = jsdo._clientRows(beforeJsonObject[request.jsrecord._tableRef._name]);
+                    // Rows the server created or changed during the delete come back in the
+                    // after table: merge them
+                    var afterJsonObject = dataSetJsonObject[request.jsrecord._tableRef._name];
+                    if (afterJsonObject instanceof Array
+                        && data instanceof Array && data.length === 1 && data[0]["prods:clientId"]
+                        && !jsdo._hasRejectedRows(dataSetJsonObject)) {
+                        for (var s = 0; s < afterJsonObject.length; s++) {
+                            jsdo._mergeServerRecord(request.jsrecord._tableRef, afterJsonObject[s], xhr.request);
+                        }
+                    }
                 }
             }
             else {
