@@ -5542,6 +5542,66 @@ var progress = typeof progress === 'undefined' ? {} : progress;
 
         /////////////////////////////////////////////////////////////////////////////////////////////
         //
+        // Private method to merge a row that the server created or changed while it saved the
+        // changes, although the client did not send it (SCLNG-1902): a row with prods:rowState
+        // "created" or "modified" and no prods:clientId. As ABL MERGE-CHANGES (..., true) does,
+        // it updates the record with the same primary key, or is added when there is none, here
+        // without change tracking, so the next save does not send it again. A record the server
+        // deleted without the client having sent it stays, as with MERGE-CHANGES. Each merged
+        // record is collected on the request in serverMergedRecords as { jsrecord, rowState },
+        // rowState being the row's prods:rowState.
+        //
+        // It returns true when the row was such a row, false otherwise.
+        this._mergeServerRecord = function (tableRef, rowJsonObject, request) {
+            var values = {},
+                keyFields = tableRef._primaryKeys,
+                existing,
+                jsrecord,
+                record,
+                i,
+                j;
+
+            if (rowJsonObject["prods:clientId"]
+                || (rowJsonObject["prods:rowState"] !== "created"
+                    && rowJsonObject["prods:rowState"] !== "modified")) {
+                return false;
+            }
+
+            this._copyRecord(tableRef, rowJsonObject, values);
+            this._deleteProdsProperties(values, true);
+
+            if (keyFields && keyFields.length > 0) {
+                for (i = 0; i < tableRef._data.length && !existing; i++) {
+                    record = tableRef._data[i];
+                    if (!record) continue;
+                    for (j = 0; j < keyFields.length; j++) {
+                        if (record[keyFields[j]] !== values[keyFields[j]]) break;
+                    }
+                    if (j === keyFields.length) existing = record;
+                }
+            }
+
+            if (existing) {
+                this._copyRecord(tableRef, values, existing);
+                jsrecord = new progress.data.JSRecord(tableRef, existing);
+            }
+            else {
+                jsrecord = tableRef._add(values, false, false);
+            }
+
+            if (!request.serverMergedRecords) {
+                request.serverMergedRecords = [];
+            }
+            request.serverMergedRecords.push({
+                jsrecord: jsrecord,
+                rowState: rowJsonObject["prods:rowState"]
+            });
+
+            return true;
+        };
+
+        /////////////////////////////////////////////////////////////////////////////////////////////
+        //
         // Private method to merge changes after a create or update operation.
         // This method is called to merge changes when server's Create or Update methods were called. 
         //
@@ -5560,6 +5620,13 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                 var tableJsonObject = this._arrayFromDataObject(jsonObject, tableRef);
 
                 if (tableJsonObject instanceof Array) {
+                    // Rows the server created or changed during the save come back next to
+                    // the specified record: merge them, and the specified record (SCLNG-1902)
+                    var jsdo = this;
+                    tableJsonObject = tableJsonObject.filter(function (rowJsonObject) {
+                        return !jsdo._mergeServerRecord(tableRef, rowJsonObject, xhr.request);
+                    });
+
                     if (tableJsonObject.length > 1) {
                         xhr.request.success = false;
                         throw new Error(msg.getMsgText("jsdoMSG100"));
@@ -5708,6 +5775,8 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                             throw new Error(msg.getMsgText("jsdoMSG035", "_mergeUpdateForSubmit()"));
                         }
                         if (!recordId) {
+                            // A row the server created or changed during the save (SCLNG-1902)
+                            this._mergeServerRecord(tableRef, tableJsonObject[i], xhr.request);
                             continue;
                         }
 
