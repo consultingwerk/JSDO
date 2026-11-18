@@ -3790,7 +3790,7 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                     jsonObject = {};
                         
                     // Make copy of row data, in case we need to convert data for backend..
-                    tableRef._jsdo._copyRecord(tableRef, jsrecord.data, rowData);
+                    tableRef._jsdo._copyRecordForRequest(tableRef, jsrecord.data, rowData);
 
                     if (this.isDataSet()) {
                         jsonObject[this._dataSetName] = {};
@@ -3848,7 +3848,7 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                     requestData = {};
                         
                     // Make copy of row data, in case we need to convert data for backend..
-                    tableRef._jsdo._copyRecord(tableRef, jsrecord.data, rowData);
+                    tableRef._jsdo._copyRecordForRequest(tableRef, jsrecord.data, rowData);
                         
                     var useBeforeImageFormat = false;
                     if (this.isDataSet()) {
@@ -3876,7 +3876,7 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                             // Dont need to send prods:clientId - since only sending one record
                             beforeRowData["prods:id"] = jsrecord.data._id;
 
-                            tableRef._jsdo._copyRecord(tableRef, 
+                            tableRef._jsdo._copyRecordForRequest(tableRef, 
                                 tableRef._beforeImage[jsrecord.data._id], beforeRowData);
                             delete beforeRowData["_id"];
 
@@ -3888,7 +3888,7 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                         if (this._resource.service
                                 && this._resource.service.settings
                                 && this._resource.service.settings.sendOnlyChanges) {
-                            tableRef._jsdo._copyRecord(tableRef, jsrecord.data, requestData, 
+                            tableRef._jsdo._copyRecordForRequest(tableRef, jsrecord.data, requestData, 
                                 tableRef._beforeImage[jsrecord.data._id]);
 
                             if (this._resource.idProperty) {
@@ -3955,7 +3955,7 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                     requestData = {};
                         
                     // Make copy of row data, in case we need to convert data for backend..
-                    tableRef._jsdo._copyRecord(tableRef, jsrecord.data, rowData);
+                    tableRef._jsdo._copyRecordForRequest(tableRef, jsrecord.data, rowData);
                         
                     var useBeforeImageFormat = false;
                     if (this.isDataSet()) {
@@ -3977,7 +3977,7 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                             beforeRowData["prods:rowState"] = "deleted";
                             beforeRowData["prods:clientId"] = jsrecord.data._id;
 
-                            tableRef._jsdo._copyRecord(tableRef, 
+                            tableRef._jsdo._copyRecordForRequest(tableRef, 
                                 tableRef._beforeImage[rowData._id], beforeRowData);
                             beforeObject[tableRef._name].push(beforeRowData);
                         }
@@ -4236,7 +4236,7 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                 }
                 else {
                     // We must copy record in case _convertRowData() needs to make conversion
-                    tableRef._jsdo._copyRecord(tableRef, jsrecord.data, requestData);
+                    tableRef._jsdo._copyRecordForRequest(tableRef, jsrecord.data, requestData);
                 }
                 
                 if (tableRef._convertForServer) {
@@ -4298,7 +4298,7 @@ var progress = typeof progress === 'undefined' ? {} : progress;
 
                 if (this._resource) {
                     if (typeof(this._resource.generic.create) == "function") {
-                        this._copyRecord(tableRef, jsrecord.data, requestData);
+                        this._copyRecordForRequest(tableRef, jsrecord.data, requestData);
                         if (this._resource.idProperty !== undefined && jsrecord.data._id !== undefined) {
                             // Remove _id when idProperty is set
                             delete requestData._id;
@@ -4320,7 +4320,7 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                 else {
                     this._session._openRequest(xhr, 'POST', this.url, true);
                     xhr.setRequestHeader("Content-Type", "application/json; charset=utf-8");
-                    this._copyRecord(tableRef, jsrecord.data, requestData);
+                    this._copyRecordForRequest(tableRef, jsrecord.data, requestData);
                     
                     if (tableRef._convertForServer) {
                         this._convertRowData(tableRef, requestData);
@@ -4372,7 +4372,7 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                     && this._resource.service.settings
                     && this._resource.service.settings.sendOnlyChanges) {
                         
-                    tableRef._jsdo._copyRecord(tableRef, jsrecord.data, requestData, 
+                    tableRef._jsdo._copyRecordForRequest(tableRef, jsrecord.data, requestData, 
                         tableRef._beforeImage[jsrecord.data._id]);
 
                     if (this._resource.idProperty) {
@@ -4385,7 +4385,7 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                 }
                 else {
                     // We must copy record in case _convertRowData() needs to make conversion
-                    tableRef._jsdo._copyRecord(tableRef, jsrecord.data, requestData);
+                    tableRef._jsdo._copyRecordForRequest(tableRef, jsrecord.data, requestData);
                 }
                 
                 if (tableRef._convertForServer) {
@@ -4625,7 +4625,7 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                 this.trigger(event, this, jsrecord, request);
             }
             
-            tableRef._jsdo._copyRecord(tableRef, jsrecord.data, rowData);
+            tableRef._jsdo._copyRecordForRequest(tableRef, jsrecord.data, rowData);
             delete rowData["_id"];
 
             tempTableJsonObject.push(rowData);
@@ -4800,7 +4800,7 @@ var progress = typeof progress === 'undefined' ? {} : progress;
             beforeRowData["prods:rowState"] = "deleted";
 
             var beforeTableJsonObject = this._getTableInBeforeJsonObject(dataSetJsonObject, tableRef._name);
-            tableRef._jsdo._copyRecord(tableRef, tableRef._beforeImage[jsrecord.data._id], beforeRowData);
+            tableRef._jsdo._copyRecordForRequest(tableRef, tableRef._beforeImage[jsrecord.data._id], beforeRowData);
             delete beforeRowData["_id"];
 
             beforeTableJsonObject.push(beforeRowData);
@@ -4845,7 +4845,7 @@ var progress = typeof progress === 'undefined' ? {} : progress;
             rowData["prods:clientId"] = jsrecord.data._id;
             rowData["prods:rowState"] = "created";
 
-            tableRef._jsdo._copyRecord(tableRef, jsrecord.data, rowData);
+            tableRef._jsdo._copyRecordForRequest(tableRef, jsrecord.data, rowData);
             delete rowData["_id"];
 
             dataSetJsonObject[tableRef._name].push(rowData);
@@ -4891,7 +4891,7 @@ var progress = typeof progress === 'undefined' ? {} : progress;
             rowData["prods:clientId"] = jsrecord.data._id;
             rowData["prods:rowState"] = "modified";
 
-            tableRef._jsdo._copyRecord(tableRef, jsrecord.data, rowData);
+            tableRef._jsdo._copyRecordForRequest(tableRef, jsrecord.data, rowData);
             delete rowData["_id"];
 
             dataSetJsonObject[tableRef._name].push(rowData);
@@ -4902,7 +4902,7 @@ var progress = typeof progress === 'undefined' ? {} : progress;
             // Required by AppServer in before-image data. Matches after row
             beforeRowData["prods:id"] = jsrecord.data._id;
 
-            tableRef._jsdo._copyRecord(tableRef, tableRef._beforeImage[jsrecord.data._id], beforeRowData);
+            tableRef._jsdo._copyRecordForRequest(tableRef, tableRef._beforeImage[jsrecord.data._id], beforeRowData);
             //delete beforeRowData["_id"]; 
 
             beforeTableJsonObject.push(beforeRowData);
@@ -5002,6 +5002,25 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                 }
                 else
                     target[field] = source[field];
+            }
+        };
+
+        /*
+         * Copies a row of tableRef into a request to the server, without the
+         * rows of the table's child tables. A read nests the child rows into
+         * their parent row when the dataset relation is nested, and the JSDO
+         * keeps them there; they are not fields of the row, and a child table
+         * sends its own changes (SCLNG-365). The before image the JSDO keeps
+         * still holds them, so rejectChanges restores them.
+         */
+        this._copyRecordForRequest = function (tableRef, source, target, onlyChangesRecord) {
+            this._copyRecord(tableRef, source, target, onlyChangesRecord);
+
+            var children = tableRef._children || [];
+            for (var i = 0; i < children.length; i++) {
+                if (target[children[i]] instanceof Array) {
+                    delete target[children[i]];
+                }
             }
         };
 
