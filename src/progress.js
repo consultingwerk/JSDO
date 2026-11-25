@@ -7604,6 +7604,9 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                 // and NamedQuery (the named query of the read) are passed
                 // through as they are; JSON.stringify leaves them out when they
                 // are not set.
+                // Consultingwerk Ltd. 25.11.2026 (SCLNG-1959) useInnerJoins
+                // (a filter on a view table also restricts the records of
+                // tableRef, SCL-6395) is passed through the same way.
 
                 filter = JSON.stringify({
                     ablFilter: ablFilter,
@@ -7616,7 +7619,8 @@ var progress = typeof progress === 'undefined' ? {} : progress;
                     top: params.top,
                     id: params.id,
                     customContext: params.customContext,
-                    NamedQuery: params.NamedQuery
+                    NamedQuery: params.NamedQuery,
+                    useInnerJoins: params.useInnerJoins
                 });
 				
                 params = {filter: filter};
